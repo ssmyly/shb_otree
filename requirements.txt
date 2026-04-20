@@ -1,0 +1,22 @@
+# ─────────────────────────────────────────────────────────────
+# requirements.txt — Python dependencies for the SHB experiment
+# Install with: pip install -r requirements.txt
+# ─────────────────────────────────────────────────────────────
+
+# oTree 5 (current stable release)
+otree>=5.10.0
+
+# Scientific computing (for analysis scripts, not required to run oTree)
+numpy>=1.24.0
+scipy>=1.10.0
+pandas>=2.0.0
+
+# Visualization (for analysis)
+matplotlib>=3.7.0
+
+# Statistics
+statsmodels>=0.14.0
+
+# Optional: for Heroku deployment
+psycopg2-binary>=2.9.0
+whitenoise>=6.4.0
