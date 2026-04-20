@@ -82,3 +82,27 @@ ROOMS = [
         'use_secure_urls': True,
     },
 ]
+
+# ── Database configuration (Heroku PostgreSQL) ───────────────
+try:
+    import dj_database_url
+    DATABASES = {
+        'default': dj_database_url.config(default='sqlite:///db.sqlite3')
+    }
+except ImportError:
+    # Fallback to SQLite for local development
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': 'db.sqlite3',
+        }
+    }
+
+# ── Static files (WhiteNoise for Heroku) ─────────────────────
+MIDDLEWARE = [
+    'whitenoise.middleware.WhiteNoiseMiddleware',
+]
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+# ── Allowed hosts (for Heroku deployment) ────────────────────
+ALLOWED_HOSTS = ['*'] if DEBUG else [environ.get('HEROKU_APP_NAME', '') + '.herokuapp.com']
