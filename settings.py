@@ -4,6 +4,19 @@ settings.py — oTree 5 configuration for the SHB Experiment
 
 from os import environ
 
+# Heroku config vars are case-sensitive. Normalize the lowercase names that
+# are easy to enter from the dashboard so oTree and this settings file see the
+# uppercase names they expect.
+for _key in [
+    'DATABASE_URL',
+    'OTREE_ADMIN_PASSWORD',
+    'OTREE_PRODUCTION',
+    'OTREE_SECRET_KEY',
+]:
+    _lower_key = _key.lower()
+    if not environ.get(_key) and environ.get(_lower_key):
+        environ[_key] = environ[_lower_key]
+
 SESSION_CONFIGS = [
     # ── Full experiment (production / Prolific) ───────────────
     {
