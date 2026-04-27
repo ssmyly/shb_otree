@@ -7,9 +7,9 @@ from os import environ
 SESSION_CONFIGS = [
     # ── Full experiment (production / Prolific) ───────────────
     {
-        'name': 'shb_experiment_full',
-        'display_name': "SHB Experiment — Full (3 rounds, real payment)",
-        'app_sequence': ['shb_experiment'],
+        'name': 'shb_experiment_v0_baseline_full',
+        'display_name': "SHB Experiment v0 Baseline — Full (3 rounds, real payment)",
+        'app_sequence': ['shb_experiment_v0_baseline'],
         'num_demo_participants': 4,
         'use_browser_bots': False,
         # Custom session-level configs (accessible via session.config[...])
@@ -19,9 +19,9 @@ SESSION_CONFIGS = [
     },
     # ── Short demo / pilot (1 round, no real payment) ─────────
     {
-        'name': 'shb_experiment_demo',
-        'display_name': "SHB Experiment — Demo (1 round, for piloting)",
-        'app_sequence': ['shb_experiment'],
+        'name': 'shb_experiment_v0_baseline_demo',
+        'display_name': "SHB Experiment v0 Baseline — Demo (1 round, for piloting)",
+        'app_sequence': ['shb_experiment_v0_baseline'],
         'num_demo_participants': 4,
         'use_browser_bots': False,
         'real_world_currency_per_point': 0.0,
