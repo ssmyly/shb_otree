@@ -3,10 +3,13 @@ shb_experiment/__init__.py
 ==========================
 oTree 5 implementation of the Salary History Ban (SHB) Experiment.
 
-Design:
+Design (post-A1 revision; see experiment/design/design_decisions.tex):
   - Between-subjects: SHB condition vs. No-SHB condition
-  - 3 rounds of real-effort number-counting task
-  - Investment stage (training tokens) before each round
+  - 3 oTree rounds mapping onto model periods:
+      Round 1 = t=0 (calibration) -- counting task only, no investment;
+                worker shown only the wage offer w_0 (not signal/score/noise).
+      Round 2 = t=1 (first work period) -- invest, task, signal, wage.
+      Round 3 = t=2 (second/terminal work period) -- invest, task, signal, wage.
   - Bayesian wage-setting formula (calibrated to model parameters)
 
 Model reference: shb_model.tex (Equations 3-4, Appendix B)
@@ -49,34 +52,75 @@ class C(BaseConstants):
     # ── Task parameters ──────────────────────────────────────
     TASK_DURATION_SECONDS = 120    # 2 minutes per round
     BASELINE_DURATION_SECONDS = 60 # 1 minute calibration round
+    # Decision H (H1, 2026-04-27): unpaid practice round before calibration.
+    # Pure familiarisation; performance is recorded for analysis (round-covariate
+    # learning fit) but does not affect any wage offer or payment.
+    PRACTICE_DURATION_SECONDS = 60
+    # Default grid for the calibration round (no investment in t=0)
     GRID_ROWS = 5
     GRID_COLS = 6
     # Baseline uses varying grid sizes to noisily measure productivity
     BASELINE_GRID_SIZES = [(3, 4), (4, 5), (5, 6), (5, 7), (6, 7)]
 
     # ── Investment parameters ─────────────────────────────────
+    # Decision B (2026-04-27): investment reduces task complexity by shrinking
+    # the grid. Skill no longer adds points; it makes the task easier so the
+    # worker can complete more cells in fixed time. Mapping (tokens → rows×cols):
+    #   0 → 5×6 (30 cells, baseline difficulty)
+    #   1 → 5×5 (25 cells, ~17% smaller)
+    #   2 → 4×5 (20 cells, ~33% smaller)
+    #   3 → 4×4 (16 cells, ~47% smaller)
+    # Decision C (2026-04-27): cumulative ECU cost is mildly convex (marginal
+    # cost rises 4 → 6 → 8) so the privately optimal investment varies across
+    # workers and treatment arms; cost is stationary across rounds.
     MAX_TRAINING_TOKENS = 3
-    TOKEN_COST_ECU = 5             # cost per training token in ECU
-    TRAINING_BONUS_PER_TOKEN = 5   # score bonus per token (points)
+    GRID_BY_TOKENS = {
+        0: (5, 6),
+        1: (5, 5),
+        2: (4, 5),
+        3: (4, 4),
+    }
+    COST_BY_TOKENS = {
+        0: 0,
+        1: 4,
+        2: 10,
+        3: 18,
+    }
     SCORE_MULTIPLIER = 5           # raw correct answers × 5 → score
 
     # ── Signal parameters ─────────────────────────────────────
-    NOISE_MIN = -10                # uniform noise lower bound
-    NOISE_MAX = 10                 # uniform noise upper bound
-    THRESHOLD = 55                 # signal must be ≥ this to be "hired"
+    # Decision E (E1, 2026-04-27): ε_t drawn uniformly on integers in
+    # [-NOISE_Q, NOISE_Q]. Compactly supported (A1 of Section III holds).
+    # This matches the uniform-linear specialization the Section III
+    # closed-form footnotes use; Section V's "normally-distributed noise"
+    # phrasing will be revised at the paper-rewrite step.
+    NOISE_Q = 10                   # ε_t ∈ {-NOISE_Q, ..., NOISE_Q} (discrete uniform)
+    NOISE_MIN = -NOISE_Q
+    NOISE_MAX = NOISE_Q
+    # Decision F (F3, 2026-04-27): retention threshold differs by period.
+    # r_0 = 45 for the calibration round so almost every participant has an
+    # observed w_0 (the heterogeneity test requires variation in observed w_0).
+    # r_1 = r_2 = 55 for the work rounds preserves the threshold bite where
+    # Channel III's investment-to-retain incentive lives. Pilot data may
+    # re-calibrate either value.
+    THRESHOLD_BASELINE = 45        # r_0 (calibration round)
+    THRESHOLD_WORK = 55            # r_1 = r_2 (work rounds)
 
-    # ── Bayesian wage-setting parameters ─────────────────────
-    # Calibrated to: θ ~ N(50, 200), ε ~ N(0, 300)
-    # κ_n = σ_θ² / (σ_θ² + σ²/n) = 200 / (200 + 300/n)
-    PRIOR_MEAN = 50.0              # μ_θ
-    PRIOR_VAR = 200.0              # σ_θ²
-    NOISE_VAR = 300.0              # σ²
-
-    # Pre-computed Kalman gains for rounds 1, 2, 3
-    # κ_1 = 200/500 = 0.400
-    # κ_2 = 200/350 ≈ 0.5714
-    # κ_3 = 200/300 ≈ 0.6667
-    KAPPA = [0.400, 0.5714, 0.6667]
+    # ── Wage-setting parameters ──────────────────────────────
+    # Decision D (D2, 2026-04-27): wage-history additive form.
+    #   SHB:  w_t = μ + κ₁ (s_t - μ)
+    #   NB :  w_t = μ + κ₁ (s_t - μ) + β · Σ_{j<t} (w_j - μ)
+    # κ₁ = 0.40 is a chosen coefficient. (Genealogy: it equals the Gaussian
+    # Bayesian gain σ_θ² / (σ_θ² + σ²) = 200/500 = 0.40 that one would compute
+    # under θ ~ N(50, 200), ε ~ N(0, 300). Under E1's uniform noise this is no
+    # longer a Bayesian primitive; the constant is retained because it gives
+    # signals a sensible weight in the wage and dovetails with the Section III
+    # uniform-linear closed forms.)
+    # β controls how strongly past wages enter the current wage under NB.
+    # See design_decisions.tex Decisions D and E for derivation and A1–A8 check.
+    PRIOR_MEAN = 50.0              # μ
+    KAPPA_1 = 0.40                 # weight on (s_t - μ) under both regimes
+    HISTORY_BETA = 0.5             # weight on each past (w_j - μ) under NB only
 
     # ── Payment ───────────────────────────────────────────────
     ECU_PER_USD = 10               # 10 ECU = $1
@@ -119,6 +163,13 @@ class Player(BasePlayer):
     # ── Assignment ────────────────────────────────────────────
     condition = models.StringField()   # 'shb' or 'no_shb'
 
+    # ── Practice (round 1 only, before Baseline) ─────────────
+    # Decision H (H1): unpaid familiarisation round. Performance recorded
+    # for the round-covariate learning fit (H2) but does not enter wages,
+    # payment, or any wage history.
+    practice_num_correct = models.IntegerField(initial=0)
+    practice_data_json = models.LongStringField(initial='[]')
+
     # ── Baseline calibration (round 1 only) ───────────────────
     # Worker performs the task once; we compute a private signal and a
     # noisy wage offer. The worker is shown ONLY the wage offer.
@@ -131,25 +182,32 @@ class Player(BasePlayer):
     baseline_data_json = models.LongStringField(initial='[]')
 
     # ── Investment decision ───────────────────────────────────
+    # initial=0 so round-1 (calibration) players who skip the Investment
+    # page have a well-defined value for downstream computations.
     training_tokens = models.IntegerField(
         label="How many training tokens would you like to purchase?",
         min=0,
         max=C.MAX_TRAINING_TOKENS,
+        initial=0,
     )
 
     # ── Task outcomes ─────────────────────────────────────────
+    # Decision B: skill investment shrinks the grid; it does NOT add points.
+    # raw_score == task_score == num_correct × SCORE_MULTIPLIER. The
+    # `raw_score` alias is retained so downstream code (signal = raw_score +
+    # noise) reads the same as in the model writeup.
     num_correct = models.IntegerField(initial=0)
     task_score = models.IntegerField(initial=0)    # num_correct × SCORE_MULTIPLIER
-    training_bonus = models.IntegerField(initial=0)  # tokens × TRAINING_BONUS_PER_TOKEN
-    raw_score = models.IntegerField(initial=0)     # task_score + training_bonus
+    raw_score = models.IntegerField(initial=0)     # = task_score under Decision B
+    grid_rows_used = models.IntegerField(initial=0)  # rows shown this round (after investment)
+    grid_cols_used = models.IntegerField(initial=0)  # cols shown this round
     noise_drawn = models.IntegerField(initial=0)   # ε sampled from Uniform[NOISE_MIN, NOISE_MAX]
     signal = models.IntegerField(initial=0)        # raw_score + noise_drawn
 
     # ── Hiring and wages ──────────────────────────────────────
     hired = models.BooleanField(initial=False)
     wage = models.FloatField(initial=0.0)          # ECU
-    kappa_used = models.FloatField(initial=0.0)    # Kalman gain applied this round
-    mean_signal_used = models.FloatField(initial=0.0)  # mean of signals entering wage formula
+    history_premium = models.FloatField(initial=0.0)  # β · Σ(w_j - μ); 0 under SHB
 
     # ── Financials ────────────────────────────────────────────
     training_cost = models.FloatField(initial=0.0)
@@ -233,9 +291,9 @@ class Player(BasePlayer):
     comp_check_tokens = models.StringField(
         label="What did training tokens do in this study?",
         choices=[
+            'They reduced the size of the counting grid',
             'They added bonus points to my score',
             'They gave me hints during the task',
-            'They had no effect on my score',
             'They changed the wage formula',
         ],
         blank=True,
@@ -265,61 +323,70 @@ def get_condition(player: Player) -> str:
     return cond
 
 
-def compute_wage(player: Player) -> tuple[float, float, float]:
+def compute_wage(player: Player) -> tuple[float, float]:
     """
     Compute the wage for this round under the player's condition.
 
+    Decision D (D2): wage-history additive form. Section III's wage
+    functions are kept general; this is a particular functional form
+    satisfying A1–A8 with A6 weak (Channel I = 0) and A3, A4 strict
+    (Channels II and III deliver Proposition 1).
+
+      SHB:  w_t = μ + κ₁ (s_t - μ)
+      NB :  w_t = μ + κ₁ (s_t - μ) + β · Σ_{j<t} (w_j - μ)
+
+    Past wages are pulled from `baseline_wage_offer` for round 1 (the
+    calibration round under A1) and from `wage` for later rounds.
+
     Returns:
-        (wage, kappa_used, mean_signal_used)
-
-    Wage formula:
-      SHB:    w = prior_mean + κ₁ × (signal_t - prior_mean)
-      No-SHB: w = prior_mean + κₙ × (mean(all_signals) - prior_mean)
-
-    where κₙ = σ_θ² / (σ_θ² + σ²/n) is the Kalman gain with n signals.
-    Reference: shb_model.tex, Equations (3)–(4).
+        (wage, history_premium)
     """
-    prior_mean = C.PRIOR_MEAN
-    prior_var = C.PRIOR_VAR
-    noise_var = C.NOISE_VAR
+    mu = C.PRIOR_MEAN
+    base = mu + C.KAPPA_1 * (player.signal - mu)
 
     if get_condition(player) == 'no_shb':
-        # Collect all signals this player has generated up to and including now
-        past_signals = [
-            p.signal for p in player.in_previous_rounds()
-        ]
-        all_signals = past_signals + [player.signal]
-        n = len(all_signals)
-        mean_sig = sum(all_signals) / n
-        # Kalman gain with n signals
-        posterior_precision = 1.0 / prior_var + n / noise_var
-        kappa_n = (n / noise_var) / posterior_precision  # = σ_θ² / (σ_θ² + σ²/n)
+        past_wages = []
+        for p in player.in_previous_rounds():
+            w_prev = p.baseline_wage_offer if p.round_number == 1 else p.wage
+            past_wages.append(w_prev)
+        history_premium = C.HISTORY_BETA * sum(w - mu for w in past_wages)
     else:
-        # SHB: only current signal
-        all_signals = [player.signal]
-        n = 1
-        mean_sig = player.signal
-        posterior_precision = 1.0 / prior_var + 1.0 / noise_var
-        kappa_n = (1.0 / noise_var) / posterior_precision
+        history_premium = 0.0
 
-    wage = prior_mean + kappa_n * (mean_sig - prior_mean)
-    return (round(wage, 2), round(kappa_n, 4), round(mean_sig, 2))
+    wage = base + history_premium
+    return (round(wage, 2), round(history_premium, 2))
 
 
 def get_salary_history(player: Player) -> list[dict]:
     """
     Return a list of dicts with historical round data for display.
     Used in Investment and Results pages under No-SHB condition.
+
+    Under A1, round 1 is the calibration round (t=0): the relevant fields
+    live in baseline_*, no investment was made. Rounds 2-3 use the regular
+    fields. The display field `is_calibration` lets templates flag this row
+    differently if desired.
     """
     history = []
     for pr in player.in_previous_rounds():
-        history.append({
-            'round': pr.round_number,
-            'tokens': pr.training_tokens,
-            'signal': pr.signal,
-            'hired': pr.hired,
-            'wage': round(pr.wage, 2),
-        })
+        if pr.round_number == 1:
+            history.append({
+                'round': pr.round_number,
+                'tokens': 0,
+                'signal': pr.baseline_signal,
+                'hired': pr.baseline_hired,
+                'wage': round(pr.baseline_wage_offer, 2),
+                'is_calibration': True,
+            })
+        else:
+            history.append({
+                'round': pr.round_number,
+                'tokens': pr.training_tokens,
+                'signal': pr.signal,
+                'hired': pr.hired,
+                'wage': round(pr.wage, 2),
+                'is_calibration': False,
+            })
     return history
 
 
@@ -358,42 +425,95 @@ class Instructions(Page):
     def vars_for_template(player: Player):
         condition = get_condition(player)
         is_shb = (condition == 'shb')
-        # Pre-compute example wages for instructions
+        # Pre-compute example wages for instructions (Decision D, D2).
+        # Example: signal s = 65 in current round, prior wage w_0 = 58
+        # (corresponds to a calibration signal of s_0 = 70).
+        mu = C.PRIOR_MEAN
         example_signal = 65
-        example_w_shb = C.PRIOR_MEAN + C.KAPPA[0] * (example_signal - C.PRIOR_MEAN)
-        example_w_noshb_r2 = C.PRIOR_MEAN + C.KAPPA[1] * (example_signal - C.PRIOR_MEAN)
+        example_w0 = 58
+        example_w_shb = mu + C.KAPPA_1 * (example_signal - mu)
+        example_w_noshb_t1 = (
+            mu + C.KAPPA_1 * (example_signal - mu)
+            + C.HISTORY_BETA * (example_w0 - mu)
+        )
         # Demo grid (5 rows × 6 cols) for the instructions illustration
         demo_grid = [3, 7, 2, 9, 1, 4, 0, 5, 7, 8, 2, 6,
                      1, 4, 7, 3, 6, 0, 9, 2, 1, 4, 7, 5,
                      0, 8, 3, 6, 2, 1]
         demo_cells = [{'digit': d, 'is_target': (d == 7)} for d in demo_grid]
 
+        # Token-by-grid-by-cost menu for the cost/benefit table in the instructions
+        token_menu = []
+        for t in range(C.MAX_TRAINING_TOKENS + 1):
+            rows, cols = C.GRID_BY_TOKENS[t]
+            token_menu.append({
+                'tokens': t,
+                'cost': C.COST_BY_TOKENS[t],
+                'rows': rows,
+                'cols': cols,
+                'cells': rows * cols,
+            })
+        baseline_cells = C.GRID_BY_TOKENS[0][0] * C.GRID_BY_TOKENS[0][1]
+
         return {
             'condition': condition,
             'is_shb': is_shb,
-            'token_cost': C.TOKEN_COST_ECU,
-            'training_bonus': C.TRAINING_BONUS_PER_TOKEN,
             'max_tokens': C.MAX_TRAINING_TOKENS,
-            'max_token_cost': C.TOKEN_COST_ECU * C.MAX_TRAINING_TOKENS,
-            'max_token_bonus': C.TRAINING_BONUS_PER_TOKEN * C.MAX_TRAINING_TOKENS,
-            'token_cost_2': C.TOKEN_COST_ECU * 2,
-            'token_bonus_2': C.TRAINING_BONUS_PER_TOKEN * 2,
+            'max_token_cost': C.COST_BY_TOKENS[C.MAX_TRAINING_TOKENS],
+            'token_cost_1': C.COST_BY_TOKENS[1],
+            'token_cost_2': C.COST_BY_TOKENS[2],
+            'token_menu': token_menu,
+            'baseline_cells': baseline_cells,
             'demo_cells': demo_cells,
-            'threshold': C.THRESHOLD,
+            'threshold_baseline': C.THRESHOLD_BASELINE,
+            'threshold_work': C.THRESHOLD_WORK,
             'noise_min': C.NOISE_MIN,
             'noise_max': C.NOISE_MAX,
             'num_rounds': C.NUM_ROUNDS,
             'task_duration': C.TASK_DURATION_SECONDS,
             'score_multiplier': C.SCORE_MULTIPLIER,
-            'kappa_1': C.KAPPA[0],
-            'kappa_2': C.KAPPA[1],
-            'kappa_3': C.KAPPA[2],
+            'kappa_1': C.KAPPA_1,
+            'history_beta': C.HISTORY_BETA,
             'prior_mean': int(C.PRIOR_MEAN),
             'example_signal': example_signal,
+            'example_w0': example_w0,
             'example_w_shb': round(example_w_shb, 1),
-            'example_w_noshb_r2': round(example_w_noshb_r2, 1),
+            'example_w_noshb_t1': round(example_w_noshb_t1, 1),
             'participation_fee_usd': C.PARTICIPATION_FEE_ECU / C.ECU_PER_USD,
             'ecu_per_usd': C.ECU_PER_USD,
+        }
+
+
+class Practice(Page):
+    """
+    Unpaid practice round (round 1 only, before Baseline).
+
+    Decision H (H1, 2026-04-27): workers complete a brief familiarisation
+    round so the calibration round is not the first time they see the
+    counting task. Performance is recorded (`practice_num_correct`,
+    `practice_data_json`) so that the analysis can fit a round-by-round
+    learning curve (Decision H2: round-number covariate). It does NOT
+    affect any wage offer, the calibration signal, or final payment.
+    """
+
+    form_model = 'player'
+    form_fields = ['practice_num_correct', 'practice_data_json']
+
+    @staticmethod
+    def is_displayed(player: Player):
+        return player.round_number == 1
+
+    @staticmethod
+    def get_timeout_seconds(player: Player):
+        return C.PRACTICE_DURATION_SECONDS
+
+    @staticmethod
+    def vars_for_template(player: Player):
+        rows, cols = C.GRID_BY_TOKENS[0]
+        return {
+            'task_duration': C.PRACTICE_DURATION_SECONDS,
+            'grid_rows': rows,
+            'grid_cols': cols,
         }
 
 
@@ -436,11 +556,13 @@ class Baseline(Page):
         player.baseline_noise = random.randint(C.NOISE_MIN, C.NOISE_MAX)
         player.baseline_signal = player.baseline_score + player.baseline_noise
 
-        # Wage offer using single-signal Bayesian formula (κ₁)
-        if player.baseline_signal >= C.THRESHOLD:
+        # Calibration wage: single-signal formula w_0 = μ + κ₁(s_0 - μ),
+        # identical under both regimes since no history exists at t=0.
+        # Retention threshold r_0 is lower than the work-round threshold (Decision F).
+        if player.baseline_signal >= C.THRESHOLD_BASELINE:
             player.baseline_hired = True
             player.baseline_wage_offer = round(
-                C.PRIOR_MEAN + C.KAPPA[0] * (player.baseline_signal - C.PRIOR_MEAN), 2
+                C.PRIOR_MEAN + C.KAPPA_1 * (player.baseline_signal - C.PRIOR_MEAN), 2
             )
         else:
             player.baseline_hired = False
@@ -451,6 +573,9 @@ class Baseline(Page):
         player.participant.vars['baseline_signal'] = player.baseline_signal
         player.participant.vars['baseline_wage_offer'] = player.baseline_wage_offer
         player.participant.vars['baseline_hired'] = player.baseline_hired
+
+        # A1: round-1 wage w_0 is paid (no training cost in calibration).
+        player.payoff = player.baseline_wage_offer
 
 
 class BaselineResult(Page):
@@ -470,7 +595,7 @@ class BaselineResult(Page):
             'wage_offer': player.baseline_wage_offer,
             'hired': player.baseline_hired,
             'is_shb': (get_condition(player) == 'shb'),
-            'threshold': C.THRESHOLD,
+            'threshold': C.THRESHOLD_BASELINE,
             'prior_mean': int(C.PRIOR_MEAN),
         }
 
@@ -480,25 +605,34 @@ class Investment(Page):
     Investment decision stage.
     Participant chooses training_tokens (0–3).
     No-SHB participants see their salary history.
+
+    A1: skipped in round 1 (calibration / t=0). First investment is in round 2 (t=1).
     """
 
     form_model = 'player'
     form_fields = ['training_tokens']
 
     @staticmethod
+    def is_displayed(player: Player):
+        return player.round_number > 1
+
+    @staticmethod
     def vars_for_template(player: Player):
         condition = get_condition(player)
         is_shb = (condition == 'shb')
         history = get_salary_history(player)
-        kappa_next = C.KAPPA[min(player.round_number - 1, len(C.KAPPA) - 1)]
 
-        # Show cost–benefit table
+        # Show cost–grid menu (Decision B: tokens shrink the grid;
+        # Decision C: cumulative ECU cost rises 0 → 4 → 10 → 18).
         token_table = []
         for t in range(C.MAX_TRAINING_TOKENS + 1):
+            rows, cols = C.GRID_BY_TOKENS[t]
             token_table.append({
                 'tokens': t,
-                'cost': t * C.TOKEN_COST_ECU,
-                'bonus': t * C.TRAINING_BONUS_PER_TOKEN,
+                'cost': C.COST_BY_TOKENS[t],
+                'rows': rows,
+                'cols': cols,
+                'cells': rows * cols,
             })
 
         return {
@@ -509,13 +643,12 @@ class Investment(Page):
             'history': history,
             'history_count_plus_1': len(history) + 1,
             'token_table': token_table,
-            'token_cost': C.TOKEN_COST_ECU,
             'max_tokens': C.MAX_TRAINING_TOKENS,
-            'training_bonus': C.TRAINING_BONUS_PER_TOKEN,
-            'threshold': C.THRESHOLD,
+            'threshold': C.THRESHOLD_WORK,
             'noise_min': C.NOISE_MIN,
             'noise_max': C.NOISE_MAX,
-            'kappa_next': round(kappa_next, 3),
+            'kappa_1': C.KAPPA_1,
+            'history_beta': C.HISTORY_BETA,
             'prior_mean': int(C.PRIOR_MEAN),
             'has_history': (len(history) > 0),
         }
@@ -526,10 +659,16 @@ class Task(Page):
     Real-effort number-counting task (2 minutes).
     Grid and problem generation handled in JavaScript (Task.html).
     num_correct is written to a hidden field by JS on timeout/submit.
+
+    A1: skipped in round 1. The calibration task lives on the Baseline page.
     """
 
     form_model = 'player'
     form_fields = ['num_correct', 'task_data_json']
+
+    @staticmethod
+    def is_displayed(player: Player):
+        return player.round_number > 1
 
     @staticmethod
     def get_timeout_seconds(player: Player):
@@ -537,17 +676,21 @@ class Task(Page):
 
     @staticmethod
     def vars_for_template(player: Player):
+        # Decision B: grid dimensions are determined by tokens purchased.
+        rows, cols = C.GRID_BY_TOKENS[player.training_tokens]
+        # Persist for downstream display / analysis (the actual write happens
+        # in before_next_page; we mirror it here so the template renders).
         return {
             'round_number': player.round_number,
             'num_rounds': C.NUM_ROUNDS,
             'training_tokens': player.training_tokens,
-            'training_bonus_total': player.training_tokens * C.TRAINING_BONUS_PER_TOKEN,
             'task_duration': C.TASK_DURATION_SECONDS,
-            'threshold': C.THRESHOLD,
+            'threshold': C.THRESHOLD_WORK,
             'noise_min': C.NOISE_MIN,
             'noise_max': C.NOISE_MAX,
-            'grid_rows': C.GRID_ROWS,
-            'grid_cols': C.GRID_COLS,
+            'grid_rows': rows,
+            'grid_cols': cols,
+            'grid_cells': rows * cols,
             'score_multiplier': C.SCORE_MULTIPLIER,
         }
 
@@ -556,31 +699,34 @@ class Task(Page):
         """
         After task: compute scores, draw noise, set signal, compute wage.
         """
-        # 1. Compute scores
+        # 0. Record the grid actually shown this round (Decision B).
+        rows, cols = C.GRID_BY_TOKENS[player.training_tokens]
+        player.grid_rows_used = rows
+        player.grid_cols_used = cols
+
+        # 1. Compute scores. Under Decision B, raw_score == task_score; the
+        # skill investment paid for an easier task, not for bonus points.
         player.task_score = player.num_correct * C.SCORE_MULTIPLIER
-        player.training_bonus = player.training_tokens * C.TRAINING_BONUS_PER_TOKEN
-        player.raw_score = player.task_score + player.training_bonus
+        player.raw_score = player.task_score
 
         # 2. Draw noise and compute signal
         player.noise_drawn = random.randint(C.NOISE_MIN, C.NOISE_MAX)
         player.signal = player.raw_score + player.noise_drawn
 
-        # 3. Determine hiring
-        player.hired = (player.signal >= C.THRESHOLD)
+        # 3. Determine hiring (work-round threshold r_1 = r_2; Decision F)
+        player.hired = (player.signal >= C.THRESHOLD_WORK)
 
-        # 4. Compute wage
+        # 4. Compute wage (Decision D, D2: additive history premium under NB)
         if player.hired:
-            wage, kappa, mean_sig = compute_wage(player)
+            wage, premium = compute_wage(player)
             player.wage = max(0.0, wage)
-            player.kappa_used = kappa
-            player.mean_signal_used = mean_sig
+            player.history_premium = premium
         else:
             player.wage = 0.0
-            player.kappa_used = 0.0
-            player.mean_signal_used = 0.0
+            player.history_premium = 0.0
 
-        # 5. Compute net earnings this round
-        player.training_cost = float(player.training_tokens * C.TOKEN_COST_ECU)
+        # 5. Compute net earnings this round (Decision C: cumulative cost is convex)
+        player.training_cost = float(C.COST_BY_TOKENS[player.training_tokens])
         player.round_net = player.wage - player.training_cost
 
         # 6. Set oTree payoff (floor at 0; participation fee added at end)
@@ -591,7 +737,13 @@ class Results(Page):
     """
     Round results page.
     Shows score breakdown, signal, hiring outcome, wage, and history (No-SHB only).
+
+    A1: skipped in round 1. Calibration outcome is shown on BaselineResult.
     """
+
+    @staticmethod
+    def is_displayed(player: Player):
+        return player.round_number > 1
 
     @staticmethod
     def vars_for_template(player: Player):
@@ -607,10 +759,12 @@ class Results(Page):
             'wage': round(player.wage, 2),
         }]
 
-        # Wage decomposition for display
-        if player.hired and not is_shb:
-            wage_from_current = C.PRIOR_MEAN + C.KAPPA[0] * (player.signal - C.PRIOR_MEAN)
-            history_premium = player.wage - wage_from_current
+        # Wage decomposition for display (Decision D, D2):
+        #   wage = [μ + κ₁(s - μ)]  +  history_premium
+        # history_premium is 0 under SHB (and 0 in any round if not hired).
+        if player.hired:
+            wage_from_current = C.PRIOR_MEAN + C.KAPPA_1 * (player.signal - C.PRIOR_MEAN)
+            history_premium = player.history_premium
         else:
             wage_from_current = player.wage
             history_premium = 0.0
@@ -622,19 +776,21 @@ class Results(Page):
             'condition': condition,
             'training_tokens': player.training_tokens,
             'training_cost': player.training_cost,
+            'grid_rows_used': player.grid_rows_used,
+            'grid_cols_used': player.grid_cols_used,
+            'grid_cells_used': player.grid_rows_used * player.grid_cols_used,
             'num_correct': player.num_correct,
             'task_score': player.task_score,
-            'training_bonus': player.training_bonus,
             'raw_score': player.raw_score,
             'noise_drawn': player.noise_drawn,
             'signal': player.signal,
             'hired': player.hired,
             'wage': round(player.wage, 2),
-            'kappa_used': round(player.kappa_used, 3),
-            'mean_signal_used': round(player.mean_signal_used, 2),
+            'kappa_1': C.KAPPA_1,
+            'history_beta': C.HISTORY_BETA,
             'round_net': round(player.round_net, 2),
             'net_floored': round(max(0, player.round_net), 2),
-            'threshold': C.THRESHOLD,
+            'threshold': C.THRESHOLD_WORK,
             'prior_mean': int(C.PRIOR_MEAN),
             'score_multiplier': C.SCORE_MULTIPLIER,
             'history': history_with_current,
@@ -658,31 +814,67 @@ class FinalResults(Page):
     def vars_for_template(player: Player):
         all_rounds = player.in_all_rounds()
 
+        # A1 helper: per-round row, pulling from baseline_* in round 1
+        # (calibration / t=0) and from regular fields in rounds 2-3 (t=1, t=2).
         history = []
         for r in all_rounds:
-            history.append({
-                'round': r.round_number,
-                'tokens': r.training_tokens,
-                'cost': round(r.training_cost, 2),
-                'correct': r.num_correct,
-                'task_score': r.task_score,
-                'bonus': r.training_bonus,
-                'raw_score': r.raw_score,
-                'noise': r.noise_drawn,
-                'signal': r.signal,
-                'hired': r.hired,
-                'wage': round(r.wage, 2),
-                'net': round(max(0.0, r.round_net), 2),
-            })
+            if r.round_number == 1:
+                history.append({
+                    'round': r.round_number,
+                    'tokens': 0,
+                    'cost': 0.0,
+                    'grid': '×'.join(str(x) for x in C.GRID_BY_TOKENS[0]),
+                    'correct': r.baseline_num_correct,
+                    'task_score': r.baseline_score,
+                    'raw_score': r.baseline_score,
+                    'noise': r.baseline_noise,
+                    'signal': r.baseline_signal,
+                    'hired': r.baseline_hired,
+                    'wage': round(r.baseline_wage_offer, 2),
+                    'net': round(r.baseline_wage_offer, 2),
+                    'is_calibration': True,
+                })
+            else:
+                grid_str = f"{r.grid_rows_used}×{r.grid_cols_used}" if r.grid_rows_used else '—'
+                history.append({
+                    'round': r.round_number,
+                    'tokens': r.training_tokens,
+                    'cost': round(r.training_cost, 2),
+                    'grid': grid_str,
+                    'correct': r.num_correct,
+                    'task_score': r.task_score,
+                    'raw_score': r.raw_score,
+                    'noise': r.noise_drawn,
+                    'signal': r.signal,
+                    'hired': r.hired,
+                    'wage': round(r.wage, 2),
+                    'net': round(max(0.0, r.round_net), 2),
+                    'is_calibration': False,
+                })
 
-        total_wages = sum(r.wage for r in all_rounds)
+        # Totals across all rounds (calibration wage counted; calibration has
+        # no training tokens or cost).
+        total_wages = sum(
+            (r.baseline_wage_offer if r.round_number == 1 else r.wage)
+            for r in all_rounds
+        )
         total_costs = sum(r.training_cost for r in all_rounds)
-        total_correct = sum(r.num_correct for r in all_rounds)
+        total_correct = sum(
+            (r.baseline_num_correct if r.round_number == 1 else r.num_correct)
+            for r in all_rounds
+        )
         total_tokens = sum(r.training_tokens for r in all_rounds)
-        times_hired = sum(1 for r in all_rounds if r.hired)
+        times_hired = sum(
+            1 for r in all_rounds
+            if (r.baseline_hired if r.round_number == 1 else r.hired)
+        )
 
-        # Total ECU = sum of floored round nets + participation fee
-        total_bonus_ecu = sum(max(0.0, r.round_net) for r in all_rounds)
+        # Per-round paid earnings: calibration pays w_0 in full; work rounds
+        # pay max(0, w_t - training_cost).
+        total_bonus_ecu = sum(
+            (r.baseline_wage_offer if r.round_number == 1 else max(0.0, r.round_net))
+            for r in all_rounds
+        )
         total_ecu = total_bonus_ecu + C.PARTICIPATION_FEE_ECU
         total_usd = total_ecu / C.ECU_PER_USD
 
@@ -740,7 +932,7 @@ class Survey(Page):
             'is_shb': is_shb,
             'condition': condition,
             'correct_comp_answer': (
-                'They added bonus points to my score'
+                'They reduced the size of the counting grid'
             ),
             'correct_info_answer': (
                 'Only your performance in this round'
@@ -767,6 +959,7 @@ class Survey(Page):
 page_sequence = [
     Consent,
     Instructions,
+    Practice,         # round 1 only — unpaid familiarisation (Decision H1)
     Baseline,         # round 1 only — calibration
     BaselineResult,   # round 1 only — show wage offer (private signal)
     Investment,

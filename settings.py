@@ -88,10 +88,15 @@ DEBUG = not environ.get('OTREE_PRODUCTION')
 
 # ── Room for Prolific (optional) ──────────────────────────────
 ROOMS = [
-    {
-        'name': 'prolific_shb',
-        'display_name': 'SHB Experiment (Prolific)',
-        'participant_label_file': '_rooms/prolific_shb.txt',  # optional pre-generated labels
-        'use_secure_urls': True,
-    },
+    # {
+    #     'name': 'prolific_shb',
+    #     'display_name': 'SHB Experiment (Prolific)',
+    #     'participant_label_file': '_rooms/prolific_shb.txt',  # optional pre-generated labels
+    #     'use_secure_urls': True,
+    # },
+    dict(
+        name='econ_lab',
+        display_name='Experimental Economics Lab'
+    ),
+
 ]
