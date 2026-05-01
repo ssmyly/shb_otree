@@ -7,6 +7,7 @@
   .pay-amount { font-size: 2.6rem; font-weight: 800; color: #2c3e50; }
   table.history th { background: #2c3e50; color: white; font-size: 0.88rem; }
   table.history td { font-size: 0.92rem; }
+  .calib-row td { background: #f6f0fa; }
 </style>
 
 <h3>Study Complete — Your Results</h3>
@@ -16,7 +17,8 @@
     <div style="color:#155724; font-size:1.1rem;">Total payment</div>
     <div class="pay-amount">${{ total_usd }}</div>
     <div style="color:#666; margin-top:0.5rem;">
-      ${{ participation_usd }} base + ${{ bonus_usd }} bonus
+      ${{ participation_usd }} base + ${{ bonus_usd }} bonus<br>
+      ({{ total_bonus_points }} points earned ÷ {{ points_per_usd }} points per dollar = ${{ bonus_usd }} bonus)
     </div>
   </div>
 </div>
@@ -26,22 +28,25 @@
   <table class="table history table-bordered table-sm">
     <thead>
       <tr>
-        <th>Round</th><th>Tokens</th><th>Cost</th>
-        <th>Correct</th><th>Score</th><th>Bonus</th>
-        <th>Noise</th><th>Signal</th><th>Hired?</th>
-        <th>Wage</th><th>Net</th>
+        <th>Round</th>
+        <th>Type</th>
+        <th>Grid faced</th>
+        <th>Tokens</th>
+        <th>Cost (pts)</th>
+        <th>Reading</th>
+        <th>Hired?</th>
+        <th>Wage (pts)</th>
+        <th>Net (pts)</th>
       </tr>
     </thead>
     <tbody>
       {% for r in history %}
-      <tr>
+      <tr {% if r.is_calibration %}class="calib-row"{% endif %}>
         <td>{{ r.round }}</td>
+        <td>{% if r.is_calibration %}Calibration{% else %}Work{% endif %}</td>
+        <td>{{ r.grid }}</td>
         <td>{{ r.tokens }}</td>
         <td>{{ r.cost }}</td>
-        <td>{{ r.correct }}</td>
-        <td>{{ r.task_score }}</td>
-        <td>+{{ r.bonus }}</td>
-        <td>{% if r.noise >= 0 %}+{% endif %}{{ r.noise }}</td>
         <td>{{ r.signal }}</td>
         <td>{% if r.hired %}YES{% else %}NO{% endif %}</td>
         <td>{{ r.wage }}</td>
@@ -53,9 +58,9 @@
 
   <p style="margin-top:1rem;">
     <strong>Totals:</strong> {{ total_correct }} problems correct &middot;
-    {{ total_tokens }} tokens purchased &middot;
+    {{ total_tokens }} training tokens purchased &middot;
     Hired in {{ times_hired }} of {{ num_rounds }} rounds &middot;
-    Total bonus: {{ total_bonus_ecu }} ECU
+    Total bonus: {{ total_bonus_points }} points
   </p>
 </div>
 

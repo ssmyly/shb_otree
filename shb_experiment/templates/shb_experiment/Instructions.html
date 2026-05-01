@@ -23,10 +23,11 @@
   }
   .grid-cell.target { background: #ffd700; border-color: #d4a000; }
   .token-table th { background: #2c3e50; color: white; }
-  .wage-formula {
+  .example-box {
     background: #f8f9fa; border: 1px solid #dee2e6;
-    border-radius: 6px; padding: 1rem; font-family: monospace; font-size: 1rem;
+    border-radius: 6px; padding: 1rem 1.25rem; margin-bottom: 0.75rem;
   }
+  .example-box .label { font-weight: 700; color: #2c3e50; }
   .step-circle {
     display: inline-flex; align-items: center; justify-content: center;
     width: 2rem; height: 2rem; border-radius: 50%;
@@ -35,30 +36,57 @@
   }
   .step-row { display: flex; align-items: flex-start; margin-bottom: 0.75rem; }
   .highlight-box { background: #e8f4fd; border-left: 4px solid #3498db; padding: 0.75rem 1rem; border-radius: 4px; }
+  .flow-line {
+    display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center;
+    margin-top: 0.5rem; font-size: 0.95rem;
+  }
+  .flow-step {
+    background: #ecf0f1; padding: 0.4rem 0.8rem; border-radius: 4px;
+    border: 1px solid #bdc3c7; font-weight: 600;
+  }
+  .flow-arrow { color: #7f8c8d; }
 </style>
 
 <h3 class="mb-3">Study Instructions</h3>
-<p class="text-muted">Please read carefully. You will be asked a comprehension question at the end.</p>
+<p class="text-muted">Please read carefully. We will ask you a short comprehension question at the end.</p>
 
 <!-- Condition banner -->
 {% if is_shb %}
 <div class="condition-banner condition-shb">
-  📋 Your condition: <strong>EMPLOYER CANNOT SEE YOUR SALARY HISTORY</strong><br>
-  <small>Wages are based only on your performance in the current round.</small>
+  📋 Your condition: <strong>EMPLOYERS CANNOT SEE YOUR PAST WAGES</strong><br>
+  <small>Each wage offer you get depends only on how you do in that round.</small>
 </div>
 {% else %}
 <div class="condition-banner condition-noshb">
-  📈 Your condition: <strong>EMPLOYER CAN SEE YOUR FULL SALARY HISTORY</strong><br>
-  <small>Wages are based on your performance history across all rounds.</small>
+  📈 Your condition: <strong>EMPLOYERS CAN SEE YOUR PAST WAGES</strong><br>
+  <small>Each wage offer you get depends on how you do in that round <em>and</em> on the wages you got before.</small>
 </div>
 {% endif %}
 
-<!-- Step 1: The Task -->
+<!-- How the study is structured -->
 <div class="shb-card">
-  <div class="shb-section-header">Step 1: The Task — Counting Numbers in Grids</div>
-  <p>Each round you will have <strong>{{ task_duration }} seconds (2 minutes)</strong> to solve as many number-counting problems as possible.</p>
+  <div class="shb-section-header">How the study is structured</div>
+  <p>The study has four short stages, in this order:</p>
+  <div class="flow-line">
+    <span class="flow-step">Practice (warm-up)</span>
+    <span class="flow-arrow">→</span>
+    <span class="flow-step">Calibration round</span>
+    <span class="flow-arrow">→</span>
+    <span class="flow-step">Work round 1</span>
+    <span class="flow-arrow">→</span>
+    <span class="flow-step">Work round 2</span>
+  </div>
+  <ul class="mt-3">
+    <li><strong>Practice:</strong> a short warm-up so you can get used to the counting task. It does <em>not</em> affect your pay.</li>
+    <li><strong>Calibration round:</strong> you complete the counting task once. The employer uses your performance here to set a starting wage offer (your "past wage"). The bar to clear here is lower than in the work rounds, since this round is just to figure out where you start.</li>
+    <li><strong>Work rounds (2 total):</strong> in each one, you first decide how much to invest in training, then complete the counting task, then see your wage offer. Both work rounds count toward your bonus.</li>
+  </ul>
+</div>
 
-  <p><strong>How it works:</strong> A target digit is shown above a 5×6 grid of numbers. Count how many times the target digit appears in the grid and type your answer.</p>
+<!-- The counting task -->
+<div class="shb-card">
+  <div class="shb-section-header">The counting task</div>
+  <p>You will see a target digit and a grid of numbers. Count how many times the target digit appears, type the number, and click Submit. You get instant feedback (✅ or ❌) and a new problem appears. You answer as many problems as you can in the time allowed.</p>
 
   <div style="display:flex; align-items:flex-start; gap:2rem; flex-wrap:wrap; margin: 1rem 0;">
     <div>
@@ -71,106 +99,101 @@
     </div>
     <div style="padding-top:1.5rem;">
       <p>The digit <strong>7</strong> appears <strong>5 times</strong> (highlighted in gold).</p>
-      <p>You would type: <code>5</code> and click Submit.</p>
-      <p>You get immediate feedback: ✅ Correct or ❌ Incorrect.</p>
+      <p>You would type <code>5</code> and click Submit.</p>
     </div>
   </div>
 
-  <p><strong>Scoring:</strong></p>
-  <ul>
-    <li>Each correct answer = <strong>{{ score_multiplier }} points</strong></li>
-    <li>Problems are generated randomly each time</li>
-    <li>Answer as many as you can in {{ task_duration }} seconds</li>
-  </ul>
+  <p>Each correct answer gives you <strong>{{ score_multiplier }} performance points</strong>. Your <strong>performance score</strong> for the round is the number of correct answers times {{ score_multiplier }}. Work rounds give you <strong>{{ task_duration }} seconds</strong> to answer.</p>
 </div>
 
-<!-- Step 2: Training Tokens -->
+<!-- Investment -->
 <div class="shb-card">
-  <div class="shb-section-header">Step 2: Training Tokens — Your Investment Decision</div>
-  <p>Before each round, you may purchase <strong>training tokens</strong> to boost your score.</p>
+  <div class="shb-section-header">Investing in training (work rounds only)</div>
+  <p>Before each work round, you may pay for training. Training does <strong>not</strong> add points to your score directly. Instead, it makes the task easier by <strong>shrinking the counting grid</strong>, so you can answer more problems in the same amount of time.</p>
 
-  <table class="table token-table table-bordered" style="max-width:500px;">
+  <table class="table token-table table-bordered" style="max-width:600px;">
     <thead>
-      <tr><th>Tokens purchased</th><th>Cost (ECU)</th><th>Score bonus (pts)</th></tr>
+      <tr><th>Training tokens</th><th>Cost (points)</th><th>Grid you face</th><th>Cells</th></tr>
     </thead>
     <tbody>
-      <tr><td>0</td><td>0</td><td>+0</td></tr>
-      <tr><td>1</td><td>{{ token_cost }}</td><td>+{{ training_bonus }}</td></tr>
-      <tr><td>2</td><td>{{ token_cost_2 }}</td><td>+{{ token_bonus_2 }}</td></tr>
-      <tr><td>3 (max)</td><td>{{ max_token_cost }}</td><td>+{{ max_token_bonus }}</td></tr>
+      {% for row in token_menu %}
+      <tr>
+        <td>{{ row.tokens }}</td>
+        <td>{{ row.cost }}</td>
+        <td>{{ row.rows }}×{{ row.cols }}</td>
+        <td>{{ row.cells }}</td>
+      </tr>
+      {% endfor %}
     </tbody>
   </table>
-  <p class="text-muted" style="font-size:0.88rem;">Training costs are deducted from your earnings <em>regardless</em> of whether you are hired that round.</p>
+  <p class="text-muted" style="font-size:0.9rem;">Each step of compression is a little more expensive than the last. The cost is taken out of your earnings for that round whether or not you are hired.</p>
 </div>
 
-<!-- Step 3: Hiring and Wages -->
+<!-- Hiring and wages -->
 <div class="shb-card">
-  <div class="shb-section-header">Step 3: Hiring and Wages</div>
+  <div class="shb-section-header">How wages are set</div>
 
   <div class="step-row">
     <div class="step-circle">1</div>
-    <div>Your <strong>signal</strong> = task score + training bonus + a small random noise (between {{ noise_min }} and +{{ noise_max }} points). The noise represents randomness in how employers perceive your performance.</div>
+    <div>After the task, the employer reads your <strong>performance score</strong> with a small amount of random noise added (between {{ noise_min }} and +{{ noise_max }} points). This represents the fact that employers can't observe your true productivity perfectly.</div>
   </div>
   <div class="step-row">
     <div class="step-circle">2</div>
-    <div><strong>Hiring threshold = {{ threshold }} points.</strong> If your signal ≥ {{ threshold }}, you are <strong>HIRED</strong> and receive a wage. If signal &lt; {{ threshold }}, your wage this round = 0.</div>
+    <div>If that noisy reading is at or above the bar to clear that round (<strong>{{ threshold_baseline }} points</strong> in calibration; <strong>{{ threshold_work }} points</strong> in each work round), you are <strong>hired</strong> and receive a wage offer. Otherwise your wage that round is 0 (training cost is still taken out).</div>
   </div>
   <div class="step-row">
     <div class="step-circle">3</div>
-    <div>If hired, your wage is computed by a formula based on your signal(s):
+    <div>
+      {% if is_shb %}
+      Your wage offer depends <strong>only on this round's noisy reading</strong>. Past rounds do not enter the formula.
+      {% else %}
+      Your wage offer depends on <strong>this round's noisy reading and the wages you received in earlier rounds</strong>. A higher past wage gives you a higher offer this round.
+      {% endif %}
     </div>
   </div>
 
-  <div class="wage-formula mt-2 mb-2">
-    {% if is_shb %}
-    <strong>Your wage formula (SHB condition):</strong><br>
-    wage = {{ prior_mean }} + {{ kappa_1 }} × (your signal this round − {{ prior_mean }})<br><br>
-    <em>Example:</em> If your signal = {{ example_signal }}:<br>
-    wage = {{ prior_mean }} + {{ kappa_1 }} × ({{ example_signal }} − {{ prior_mean }}) = <strong>{{ example_w_shb }} ECU</strong>
-    {% else %}
-    <strong>Your wage formula (No-SHB condition):</strong><br>
-    wage = {{ prior_mean }} + κ_n × (average of all your signals − {{ prior_mean }})<br><br>
-    where κ increases as you complete more rounds:<br>
-    &nbsp;&nbsp;Round 1: κ₁ = {{ kappa_1 }}<br>
-    &nbsp;&nbsp;Round 2: κ₂ = {{ kappa_2 }} (employer uses 2 signals → more precise)<br>
-    &nbsp;&nbsp;Round 3: κ₃ = {{ kappa_3 }} (employer uses 3 signals → most precise)<br><br>
-    <em>Example (Round 2):</em> If your Round 1 signal = 60 and Round 2 signal = {{ example_signal }}:<br>
-    Average signal = (60 + {{ example_signal }}) / 2 = 62.5<br>
-    wage = {{ prior_mean }} + {{ kappa_2 }} × (62.5 − {{ prior_mean }}) = <strong>{{ example_w_noshb_r2 }} ECU</strong>
-    {% endif %}
-  </div>
+  <h5 class="mt-3">Worked example</h5>
 
-  {% if not is_shb %}
-  <div class="highlight-box mt-2">
-    <strong>Key point:</strong> Because the employer uses your full salary history, a strong early-round performance increases your wages in later rounds. Your salary history is displayed to you throughout the study.
+  {% if is_shb %}
+  <div class="example-box">
+    <span class="label">Example.</span> Suppose your noisy reading this round is <strong>{{ example_signal }}</strong> (above the average of {{ prior_mean }}). The employer sets your wage by starting at the average and moving partway toward your reading. In this study that gives a wage of about <strong>{{ example_w_shb }} points</strong>.
+  </div>
+  <div class="example-box">
+    <span class="label">Why it doesn't matter what you got before.</span> Under your condition, the employer can't see your past wages, so it makes no difference whether your earlier wage was high or low — the formula uses only this round's reading. The training tokens still help, because a smaller grid lets you answer more problems and raises your reading.
   </div>
   {% else %}
+  <div class="example-box">
+    <span class="label">Example 1 — favorable past wage.</span> Suppose your noisy reading this round is <strong>{{ example_signal }}</strong> (above the average of {{ prior_mean }}) and the wage you got in the calibration round was <strong>{{ example_w0 }}</strong> (also above average). Under your condition, the employer combines them: the part from this round is the same as in the SHB condition (about <strong>{{ example_w_shb }} points</strong>), and there is an extra bonus from your favorable past wage. Total: about <strong>{{ example_w_noshb_t1 }} points</strong> — higher than under SHB.
+  </div>
+  <div class="example-box">
+    <span class="label">Example 2 — unfavorable past wage.</span> Now suppose your past wage was <strong>below</strong> the average of {{ prior_mean }} instead. Same reading this round of {{ example_signal }}, but the past-wage piece works against you: your wage this round is <strong>lower</strong> than the SHB wage of {{ example_w_shb }} points. Past wages can help you or hurt you, depending on whether they were above or below the average.
+  </div>
   <div class="highlight-box mt-2">
-    <strong>Key point:</strong> Because the employer cannot see your salary history, each round's wage depends only on <em>this round's</em> signal. Past rounds do not affect future wages.
+    <strong>Key point:</strong> Doing well early gives you a head-start that follows you forward. A bad early wage drags later wages down. The wages you got so far are shown to you on each round.
   </div>
   {% endif %}
 </div>
 
-<!-- Step 4: Earnings -->
+<!-- Earnings -->
 <div class="shb-card">
-  <div class="shb-section-header">Step 4: Earnings</div>
+  <div class="shb-section-header">How you get paid</div>
   <ul>
-    <li><strong>Round net earnings</strong> = wage − training cost (floored at 0)</li>
-    <li><strong>Total bonus</strong> = sum of all round net earnings</li>
-    <li><strong>Total payment</strong> = ${{ participation_fee_usd }}.00 base + (total ECU ÷ {{ ecu_per_usd }})</li>
+    <li>Each round's <strong>net earnings</strong> = wage − training cost (never below 0).</li>
+    <li>Your <strong>total bonus</strong> is the sum of net earnings across the calibration round and the two work rounds.</li>
+    <li>You also get a <strong>${{ participation_fee_usd }} base payment</strong> for completing the study.</li>
+    <li>Bonus points are converted to dollars at <strong>{{ points_per_usd }} points = $1</strong>.</li>
   </ul>
-  <p>Example: If you earn 48 ECU net across 3 rounds: bonus = 48 ÷ {{ ecu_per_usd }} = <strong>$4.80</strong>. Plus ${{ participation_fee_usd }}.00 base = <strong>$7.80 total</strong>.</p>
 </div>
 
 <!-- Summary -->
 <div class="shb-card" style="background:#f0f8ff;">
-  <strong>Summary of the experiment flow:</strong>
+  <strong>Quick recap of the flow:</strong>
   <ol class="mt-2">
-    <li>Investment decision (choose 0–3 training tokens)</li>
-    <li>Complete counting task (2 minutes)</li>
-    <li>See your signal, hiring outcome, and wage</li>
-    <li>Repeat for {{ num_rounds }} rounds total</li>
-    <li>Answer short exit survey</li>
+    <li>Practice round (warm-up, no pay).</li>
+    <li>Calibration round (counting task → starting wage offer).</li>
+    <li>Work round 1: pick training tokens → counting task → see your wage.</li>
+    <li>Work round 2: same again.</li>
+    <li>Final summary and a short exit survey.</li>
   </ol>
 </div>
 

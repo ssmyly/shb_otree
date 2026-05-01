@@ -18,6 +18,17 @@ for _key in [
         environ[_key] = environ[_lower_key]
 
 SESSION_CONFIGS = [
+    # ── Working app (post-A1..H revision) ─────────────────────
+    {
+        'name': 'shb_experiment',
+        'display_name': "SHB Experiment — Working (1 calibration + 2 work rounds)",
+        'app_sequence': ['shb_experiment'],
+        'num_demo_participants': 4,
+        'use_browser_bots': False,
+        'real_world_currency_per_point': 0.10,
+        'participation_fee': 3.00,
+        'prolific_completion_url': '',
+    },
     # ── Full experiment (production / Prolific) ───────────────
     {
         'name': 'shb_experiment_v0_baseline_full',
@@ -26,7 +37,7 @@ SESSION_CONFIGS = [
         'num_demo_participants': 4,
         'use_browser_bots': False,
         # Custom session-level configs (accessible via session.config[...])
-        'real_world_currency_per_point': 0.10,  # $0.10 per ECU
+        'real_world_currency_per_point': 0.10,  # $0.10 per point
         'participation_fee': 3.00,              # $3.00 base pay (handled in app)
         'prolific_completion_url': '',           # Set to your Prolific completion URL
     },

@@ -40,9 +40,10 @@
     <span class="timer-bar">⏱ Time: <span id="timer">{{ task_duration }}</span>s</span>
     <span class="score-bar">✓ Correct: <span id="score-counter">0</span></span>
     <span style="float:right; color:#666; padding-top:0.6rem;">
-      Round {{ round_number }} of {{ num_rounds }}
+      Work round {{ work_round }} of {{ num_work_rounds }}
       {% if training_tokens > 0 %}
-        &middot; Training: <strong>+{{ training_bonus_total }} pts</strong>
+        &middot; Training: <strong>{{ training_tokens }} token{% if training_tokens != 1 %}s{% endif %}</strong>
+        ({{ grid_rows }}×{{ grid_cols }} grid)
       {% endif %}
     </span>
   </div>

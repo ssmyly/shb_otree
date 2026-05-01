@@ -3,23 +3,25 @@ shb_experiment/__init__.py
 ==========================
 oTree 5 implementation of the Salary History Ban (SHB) Experiment.
 
-Design (post-A1 revision; see experiment/design/design_decisions.tex):
-  - Between-subjects: SHB condition vs. No-SHB condition
+Design (see experiment/design/design_decisions.tex):
+  - Between-subjects: SHB condition vs. No-SHB condition.
+  - Currency shown to participants is "points" (1 point = $0.10 in the
+    payout conversion handled by oTree's real_world_currency_per_point).
   - 3 oTree rounds mapping onto model periods:
       Round 1 = t=0 (calibration) -- counting task only, no investment;
                 worker shown only the wage offer w_0 (not signal/score/noise).
       Round 2 = t=1 (first work period) -- invest, task, signal, wage.
       Round 3 = t=2 (second/terminal work period) -- invest, task, signal, wage.
-  - Bayesian wage-setting formula (calibrated to model parameters)
+  - Wage rule (Decision D2):
+      SHB  : w_t = mu + kappa_1 (s_t - mu)
+      No-SHB: w_t = mu + kappa_1 (s_t - mu) + beta * sum_{j<t} (w_j - mu)
 
-Model reference: shb_model.tex (Equations 3-4, Appendix B)
-Design reference: experiment/design/experiment_design.md
+Model reference: model_codex/general_sequential_model.pdf
+Design reference: experiment/design/design_decisions.tex
 
 Usage:
   otree devserver        (development)
   otree prodserver       (production, set OTREE_PRODUCTION=1)
-
-Authors: [Author]
 """
 
 from otree.api import *
@@ -35,17 +37,20 @@ import math
 doc = """
 Salary History Ban Experiment
 
-Workers complete 3 rounds of a number-grid counting task.
-Before each round they may purchase training tokens (human capital investment).
-Wages are set by a Bayesian formula that either uses full salary history
-(No-SHB condition) or only the current round's signal (SHB condition).
+Workers complete 1 calibration round + 2 work rounds of a number-grid counting
+task, preceded by an unpaid practice round. Before each work round they may
+purchase training tokens (human capital investment) which shrink the counting
+grid. Wages are set by a stipulated formula that either uses past wages
+(No-SHB condition) or only the current round's performance signal (SHB
+condition).
 
-Primary hypothesis: training investment is higher in No-SHB condition.
+Primary hypothesis: training investment is higher under No-SHB, with the
+gap largest for participants with favorable past wages (Corollary 1).
 """
 
 
 class C(BaseConstants):
-    NAME_IN_URL = 'shb'
+    NAME_IN_URL = 'shb_exp'
     PLAYERS_PER_GROUP = None
     NUM_ROUNDS = 3
 
@@ -70,9 +75,10 @@ class C(BaseConstants):
     #   1 → 5×5 (25 cells, ~17% smaller)
     #   2 → 4×5 (20 cells, ~33% smaller)
     #   3 → 4×4 (16 cells, ~47% smaller)
-    # Decision C (2026-04-27): cumulative ECU cost is mildly convex (marginal
-    # cost rises 4 → 6 → 8) so the privately optimal investment varies across
-    # workers and treatment arms; cost is stationary across rounds.
+    # Decision C (2026-04-27): cumulative cost is mildly convex (marginal
+    # cost rises 4 → 6 → 8 points) so the privately optimal investment
+    # varies across workers and treatment arms; cost is stationary across
+    # rounds.
     MAX_TRAINING_TOKENS = 3
     GRID_BY_TOKENS = {
         0: (5, 6),
@@ -123,8 +129,10 @@ class C(BaseConstants):
     HISTORY_BETA = 0.5             # weight on each past (w_j - μ) under NB only
 
     # ── Payment ───────────────────────────────────────────────
-    ECU_PER_USD = 10               # 10 ECU = $1
-    PARTICIPATION_FEE_ECU = 30     # $3.00 base pay in ECU
+    # Participants see all monetary amounts in "points" (settings.py sets
+    # real_world_currency_per_point=0.10, so 1 point = $0.10).
+    POINTS_PER_USD = 10            # 10 points = $1
+    PARTICIPATION_FEE_POINTS = 30  # $3.00 base pay (30 points)
 
 
 # ─────────────────────────────────────────────────────────────
@@ -206,7 +214,7 @@ class Player(BasePlayer):
 
     # ── Hiring and wages ──────────────────────────────────────
     hired = models.BooleanField(initial=False)
-    wage = models.FloatField(initial=0.0)          # ECU
+    wage = models.FloatField(initial=0.0)          # points
     history_premium = models.FloatField(initial=0.0)  # β · Σ(w_j - μ); 0 under SHB
 
     # ── Financials ────────────────────────────────────────────
@@ -408,8 +416,8 @@ class Consent(Page):
     @staticmethod
     def vars_for_template(player: Player):
         return {
-            'participation_fee_usd': C.PARTICIPATION_FEE_ECU / C.ECU_PER_USD,
-            'ecu_per_usd': C.ECU_PER_USD,
+            'participation_fee_usd': f"{C.PARTICIPATION_FEE_POINTS / C.POINTS_PER_USD:.2f}",
+            'points_per_usd': C.POINTS_PER_USD,
             'num_rounds': C.NUM_ROUNDS,
         }
 
@@ -479,8 +487,8 @@ class Instructions(Page):
             'example_w0': example_w0,
             'example_w_shb': round(example_w_shb, 1),
             'example_w_noshb_t1': round(example_w_noshb_t1, 1),
-            'participation_fee_usd': C.PARTICIPATION_FEE_ECU / C.ECU_PER_USD,
-            'ecu_per_usd': C.ECU_PER_USD,
+            'participation_fee_usd': f"{C.PARTICIPATION_FEE_POINTS / C.POINTS_PER_USD:.2f}",
+            'points_per_usd': C.POINTS_PER_USD,
         }
 
 
@@ -514,6 +522,25 @@ class Practice(Page):
             'task_duration': C.PRACTICE_DURATION_SECONDS,
             'grid_rows': rows,
             'grid_cols': cols,
+        }
+
+
+class GetReady(Page):
+    """
+    Short transition page shown after Practice and before Baseline (round 1
+    only). Lets the participant pause and read what comes next, since the
+    Practice page auto-submits when its timer expires.
+    """
+
+    @staticmethod
+    def is_displayed(player: Player):
+        return player.round_number == 1
+
+    @staticmethod
+    def vars_for_template(player: Player):
+        return {
+            'baseline_duration': C.BASELINE_DURATION_SECONDS,
+            'threshold_baseline': C.THRESHOLD_BASELINE,
         }
 
 
@@ -623,7 +650,7 @@ class Investment(Page):
         history = get_salary_history(player)
 
         # Show cost–grid menu (Decision B: tokens shrink the grid;
-        # Decision C: cumulative ECU cost rises 0 → 4 → 10 → 18).
+        # Decision C: cumulative cost rises 0 → 4 → 10 → 18 points).
         token_table = []
         for t in range(C.MAX_TRAINING_TOKENS + 1):
             rows, cols = C.GRID_BY_TOKENS[t]
@@ -637,7 +664,9 @@ class Investment(Page):
 
         return {
             'round_number': player.round_number,
+            'work_round': player.round_number - 1,
             'num_rounds': C.NUM_ROUNDS,
+            'num_work_rounds': C.NUM_ROUNDS - 1,
             'is_shb': is_shb,
             'condition': condition,
             'history': history,
@@ -647,6 +676,7 @@ class Investment(Page):
             'threshold': C.THRESHOLD_WORK,
             'noise_min': C.NOISE_MIN,
             'noise_max': C.NOISE_MAX,
+            'task_duration': C.TASK_DURATION_SECONDS,
             'kappa_1': C.KAPPA_1,
             'history_beta': C.HISTORY_BETA,
             'prior_mean': int(C.PRIOR_MEAN),
@@ -682,7 +712,9 @@ class Task(Page):
         # in before_next_page; we mirror it here so the template renders).
         return {
             'round_number': player.round_number,
+            'work_round': player.round_number - 1,
             'num_rounds': C.NUM_ROUNDS,
+            'num_work_rounds': C.NUM_ROUNDS - 1,
             'training_tokens': player.training_tokens,
             'task_duration': C.TASK_DURATION_SECONDS,
             'threshold': C.THRESHOLD_WORK,
@@ -771,7 +803,9 @@ class Results(Page):
 
         return {
             'round_number': player.round_number,
+            'work_round': player.round_number - 1,
             'num_rounds': C.NUM_ROUNDS,
+            'num_work_rounds': C.NUM_ROUNDS - 1,
             'is_shb': is_shb,
             'condition': condition,
             'training_tokens': player.training_tokens,
@@ -870,13 +904,13 @@ class FinalResults(Page):
         )
 
         # Per-round paid earnings: calibration pays w_0 in full; work rounds
-        # pay max(0, w_t - training_cost).
-        total_bonus_ecu = sum(
+        # pay max(0, w_t - training_cost). All amounts in points.
+        total_bonus_points = sum(
             (r.baseline_wage_offer if r.round_number == 1 else max(0.0, r.round_net))
             for r in all_rounds
         )
-        total_ecu = total_bonus_ecu + C.PARTICIPATION_FEE_ECU
-        total_usd = total_ecu / C.ECU_PER_USD
+        total_points = total_bonus_points + C.PARTICIPATION_FEE_POINTS
+        total_usd = total_points / C.POINTS_PER_USD
 
         return {
             'history': history,
@@ -885,13 +919,13 @@ class FinalResults(Page):
             'total_correct': total_correct,
             'total_tokens': total_tokens,
             'times_hired': times_hired,
-            'total_bonus_ecu': round(total_bonus_ecu, 2),
-            'participation_fee_ecu': C.PARTICIPATION_FEE_ECU,
-            'total_ecu': round(total_ecu, 2),
+            'total_bonus_points': round(total_bonus_points, 2),
+            'participation_fee_points': C.PARTICIPATION_FEE_POINTS,
+            'total_points': round(total_points, 2),
             'total_usd': round(total_usd, 2),
-            'bonus_usd': round(total_bonus_ecu / C.ECU_PER_USD, 2),
-            'participation_usd': C.PARTICIPATION_FEE_ECU / C.ECU_PER_USD,
-            'ecu_per_usd': C.ECU_PER_USD,
+            'bonus_usd': round(total_bonus_points / C.POINTS_PER_USD, 2),
+            'participation_usd': C.PARTICIPATION_FEE_POINTS / C.POINTS_PER_USD,
+            'points_per_usd': C.POINTS_PER_USD,
             'condition': get_condition(player),
             'is_shb': (get_condition(player) == 'shb'),
             'num_rounds': C.NUM_ROUNDS,
@@ -949,7 +983,39 @@ class Survey(Page):
         we add the participation fee here.
         """
         if player.round_number == C.NUM_ROUNDS:
-            player.participant.payoff += C.PARTICIPATION_FEE_ECU
+            player.participant.payoff += C.PARTICIPATION_FEE_POINTS
+
+
+class Exit(Page):
+    """
+    Final goodbye page (last round only). Confirms the study is complete,
+    repeats the total payment, and surfaces the Prolific completion link if
+    one is configured. Without this, oTree drops the participant on its
+    default "out of pages" screen with no closure.
+    """
+
+    @staticmethod
+    def is_displayed(player: Player):
+        return player.round_number == C.NUM_ROUNDS
+
+    @staticmethod
+    def vars_for_template(player: Player):
+        all_rounds = player.in_all_rounds()
+        total_bonus_points = sum(
+            (r.baseline_wage_offer if r.round_number == 1 else max(0.0, r.round_net))
+            for r in all_rounds
+        )
+        total_points = total_bonus_points + C.PARTICIPATION_FEE_POINTS
+        total_usd = total_points / C.POINTS_PER_USD
+        completion_url = (player.session.config.get('prolific_completion_url') or '').strip()
+        return {
+            'total_bonus_points': round(total_bonus_points, 2),
+            'total_usd': round(total_usd, 2),
+            'bonus_usd': round(total_bonus_points / C.POINTS_PER_USD, 2),
+            'participation_usd': f"{C.PARTICIPATION_FEE_POINTS / C.POINTS_PER_USD:.2f}",
+            'completion_url': completion_url,
+            'has_completion_url': bool(completion_url),
+        }
 
 
 # ─────────────────────────────────────────────────────────────
@@ -960,6 +1026,7 @@ page_sequence = [
     Consent,
     Instructions,
     Practice,         # round 1 only — unpaid familiarisation (Decision H1)
+    GetReady,         # round 1 only — pause between Practice and Baseline
     Baseline,         # round 1 only — calibration
     BaselineResult,   # round 1 only — show wage offer (private signal)
     Investment,
@@ -967,4 +1034,5 @@ page_sequence = [
     Results,
     FinalResults,
     Survey,
+    Exit,             # last round only — final goodbye / Prolific link
 ]

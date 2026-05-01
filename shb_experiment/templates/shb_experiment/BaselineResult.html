@@ -20,34 +20,34 @@
 
   {% if hired %}
   <div class="wage-hero hired">
-    <div class="wage-label">Initial wage offer</div>
-    <div class="wage-amount">{{ wage_offer }} ECU</div>
-    <div style="color:#155724; margin-top:0.5rem;">✅ You would be hired at this wage.</div>
+    <div class="wage-label">Starting wage offer</div>
+    <div class="wage-amount">{{ wage_offer }} points</div>
+    <div style="color:#155724; margin-top:0.5rem;">✅ You cleared the bar this round.</div>
   </div>
   {% else %}
   <div class="wage-hero nohire">
-    <div class="wage-label">Initial assessment</div>
-    <div class="nohire-msg">Not hired</div>
+    <div class="wage-label">Starting assessment</div>
+    <div class="nohire-msg">Not hired this round</div>
     <div style="color:#721c24; margin-top:0.5rem;">
-      Your performance fell below the hiring threshold ({{ threshold }} points).
+      Your performance fell below the bar to clear ({{ threshold }} points). Your starting wage is 0.
     </div>
   </div>
   {% endif %}
 
   <div class="note">
     <strong>What you see:</strong> only this wage offer.<br>
-    <strong>What you don't see:</strong> your raw score, the random noise the employer added,
-    or the underlying signal. This mirrors a real labor market: candidates observe wage
-    offers, not the employer's internal assessment.
+    <strong>What you don't see:</strong> your raw score or the random noise the employer added.
+    This mirrors a real labor market: candidates see wage offers, not the employer's internal
+    reading.
   </div>
 
   <div class="note" style="border-left-color:#3498db;">
-    The main study now begins. You will complete <strong>3 rounds</strong> of the same
-    counting task. Before each round you can purchase training tokens to boost your score.
+    Next come the two <strong>work rounds</strong>. Before each work round you can buy training
+    tokens to shrink the counting grid.
     {% if is_shb %}
-      Each round, the employer will set your wage based on <strong>only that round's signal</strong>.
+      Under your condition, the employer will set each work-round wage from <strong>only that round's performance</strong> — past wages do not matter.
     {% else %}
-      Each round, the employer will set your wage based on <strong>your full performance history so far</strong>.
+      Under your condition, the employer will use both <strong>that round's performance and the wages you earned earlier</strong>. The wage you just received counts as a past wage going forward.
     {% endif %}
   </div>
 </div>
