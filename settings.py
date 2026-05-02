@@ -29,28 +29,28 @@ SESSION_CONFIGS = [
         'participation_fee': 3.00,
         'prolific_completion_url': '',
     },
-    # ── Full experiment (production / Prolific) ───────────────
-    {
-        'name': 'shb_experiment_v0_baseline_full',
-        'display_name': "SHB Experiment v0 Baseline — Full (3 rounds, real payment)",
-        'app_sequence': ['shb_experiment_v0_baseline'],
-        'num_demo_participants': 4,
-        'use_browser_bots': False,
-        # Custom session-level configs (accessible via session.config[...])
-        'real_world_currency_per_point': 0.10,  # $0.10 per point
-        'participation_fee': 3.00,              # $3.00 base pay (handled in app)
-        'prolific_completion_url': '',           # Set to your Prolific completion URL
-    },
-    # ── Short demo / pilot (1 round, no real payment) ─────────
-    {
-        'name': 'shb_experiment_v0_baseline_demo',
-        'display_name': "SHB Experiment v0 Baseline — Demo (1 round, for piloting)",
-        'app_sequence': ['shb_experiment_v0_baseline'],
-        'num_demo_participants': 4,
-        'use_browser_bots': False,
-        'real_world_currency_per_point': 0.0,
-        'participation_fee': 0.0,
-    },
+    # # ── Full experiment (production / Prolific) ───────────────
+    # {
+    #     'name': 'shb_experiment_v0_baseline_full',
+    #     'display_name': "SHB Experiment v0 Baseline — Full (3 rounds, real payment)",
+    #     'app_sequence': ['shb_experiment_v0_baseline'],
+    #     'num_demo_participants': 4,
+    #     'use_browser_bots': False,
+    #     # Custom session-level configs (accessible via session.config[...])
+    #     'real_world_currency_per_point': 0.10,  # $0.10 per point
+    #     'participation_fee': 3.00,              # $3.00 base pay (handled in app)
+    #     'prolific_completion_url': '',           # Set to your Prolific completion URL
+    # },
+    # # ── Short demo / pilot (1 round, no real payment) ─────────
+    # {
+    #     'name': 'shb_experiment_v0_baseline_demo',
+    #     'display_name': "SHB Experiment v0 Baseline — Demo (1 round, for piloting)",
+    #     'app_sequence': ['shb_experiment_v0_baseline'],
+    #     'num_demo_participants': 4,
+    #     'use_browser_bots': False,
+    #     'real_world_currency_per_point': 0.0,
+    #     'participation_fee': 0.0,
+    # },
 ]
 
 # ── oTree configuration ────────────────────────────────────────
