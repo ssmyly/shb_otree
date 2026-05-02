@@ -140,6 +140,10 @@
       rt_ms: Date.now() - problemStartTime,
       time_left: timeRemaining,
     });
+    // Keep the hidden form fields in sync after every answer so the latest
+    // count is recorded regardless of how the form is submitted.
+    document.getElementById('id_practice_num_correct').value = numCorrect;
+    document.getElementById('id_practice_data_json').value = JSON.stringify(problemHistory);
     setTimeout(newProblem, 700);
   }
 
