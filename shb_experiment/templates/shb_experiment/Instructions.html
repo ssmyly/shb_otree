@@ -78,8 +78,8 @@
   </div>
   <ul class="mt-3">
     <li><strong>Practice:</strong> a short warm-up so you can get used to the counting task. It does <em>not</em> affect your pay.</li>
-    <li><strong>Calibration round:</strong> you complete the counting task once. The employer uses your performance here to set a starting wage offer (your "past wage"). The bar to clear here is lower than in the work rounds, since this round is just to figure out where you start.</li>
-    <li><strong>Work rounds (2 total):</strong> in each one, you first decide how much to invest in training, then complete the counting task, then see your wage offer. Both work rounds count toward your bonus.</li>
+    <li><strong>Calibration round:</strong> you complete the counting task once. The employer uses your performance here to set a starting wage offer (your "past wage"). You do face the possibility of being rejected, getting 0 wage this period.The bar to clear here is lower than in the work rounds, however, since this round is just to figure out where you start.</li>
+    <li><strong>Work rounds (2 total):</strong> in each one, you first decide how much to invest in training, then complete the counting task, then see your wage offer (always face the possibility of rejection). Both work rounds count toward your bonus.</li>
   </ul>
 </div>
 
@@ -98,12 +98,12 @@
       </div>
     </div>
     <div style="padding-top:1.5rem;">
-      <p>The digit <strong>7</strong> appears <strong>5 times</strong> (highlighted in gold).</p>
-      <p>You would type <code>5</code> and click Submit.</p>
+      <p>The digit <strong>7</strong> appears <strong>4 times</strong> (highlighted in gold).</p>
+      <p>You would type <code>4</code> and click Submit.</p>
     </div>
   </div>
 
-  <p>Each correct answer gives you <strong>{{ score_multiplier }} performance points</strong>. Your <strong>performance score</strong> for the round is the number of correct answers times {{ score_multiplier }}. Work rounds give you <strong>{{ task_duration }} seconds</strong> to answer.</p>
+  <p>Each correct answer gives you <strong>{{ score_multiplier }} performance points</strong>. Your <strong>performance score</strong> for the round is the number of correct answers times {{ score_multiplier }}. The calibration round gives you <strong>{{ calibration_duration }} seconds</strong> to answer. Work rounds give you <strong>{{ task_duration }} seconds</strong>.</p>
 </div>
 
 <!-- Investment -->
@@ -126,7 +126,7 @@
       {% endfor %}
     </tbody>
   </table>
-  <p class="text-muted" style="font-size:0.9rem;">Each step of compression is a little more expensive than the last. The cost is taken out of your earnings for that round whether or not you are hired.</p>
+  <p class="text-muted" style="font-size:0.9rem;">Each step of grid compression is a little more expensive than the last. The cost is taken out of your earnings for that round whether or not you are hired.</p>
 </div>
 
 <!-- Hiring and wages -->
@@ -156,7 +156,7 @@
 
   {% if is_shb %}
   <div class="example-box">
-    <span class="label">Example.</span> Suppose your noisy reading this round is <strong>{{ example_signal }}</strong> (above the average of {{ prior_mean }}). The employer sets your wage by starting at the average and moving partway toward your reading. In this study that gives a wage of about <strong>{{ example_w_shb }} points</strong>.
+    <span class="label">Example.</span> Suppose your noisy reading this round is <strong>{{ example_signal }}</strong> (above the average of {{ prior_mean }}). The employer sets your wage by starting at the average and moving partway toward how they assess you. In this study that gives a wage of about <strong>{{ example_w_shb }} points</strong>.
   </div>
   <div class="example-box">
     <span class="label">Why it doesn't matter what you got before.</span> Under your condition, the employer can't see your past wages, so it makes no difference whether your earlier wage was high or low — the formula uses only this round's reading. The training tokens still help, because a smaller grid lets you answer more problems and raises your reading.
@@ -192,7 +192,7 @@
     <li>Practice round (warm-up, no pay).</li>
     <li>Calibration round (counting task → starting wage offer).</li>
     <li>Work round 1: pick training tokens → counting task → see your wage.</li>
-    <li>Work round 2: same again.</li>
+    <li>Work round 2: same as work round 1.</li>
     <li>Final summary and a short exit survey.</li>
   </ol>
 </div>
