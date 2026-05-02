@@ -234,24 +234,6 @@ class Player(BasePlayer):
         choices=['Yes', 'No', 'No particular pattern'],
         blank=True,
     )
-    survey_salary_history_belief = models.IntegerField(
-        label=(
-            "In real life, do you believe your current salary affects wage offers "
-            "from new employers? (1 = Not at all, 5 = Strongly)"
-        ),
-        min=1, max=5,
-        blank=True,
-    )
-    survey_shb_awareness = models.StringField(
-        label="Are you aware of laws that ban employers from asking about salary history?",
-        choices=['Yes', 'No', 'Not sure'],
-        blank=True,
-    )
-    survey_shb_support = models.StringField(
-        label="Do you support laws that ban employers from asking about salary history?",
-        choices=['Support', 'Oppose', 'Neither support nor oppose'],
-        blank=True,
-    )
     survey_gender = models.StringField(
         label="Gender",
         choices=['Male', 'Female', 'Non-binary / third gender', 'Prefer not to say'],
@@ -489,6 +471,7 @@ class Instructions(Page):
             'example_w_noshb_t1': round(example_w_noshb_t1, 1),
             'participation_fee_usd': f"{C.PARTICIPATION_FEE_POINTS / C.POINTS_PER_USD:.2f}",
             'points_per_usd': C.POINTS_PER_USD,
+            'calibration_duration': C.BASELINE_DURATION_SECONDS
         }
 
 
