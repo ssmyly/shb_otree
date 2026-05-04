@@ -55,12 +55,19 @@ class C(BaseConstants):
     NUM_ROUNDS = 3
 
     # ── Task parameters ──────────────────────────────────────
-    TASK_DURATION_SECONDS = 120    # 2 minutes per round
-    BASELINE_DURATION_SECONDS = 60 # 1 minute calibration round
+    # 2026-05-03: durations equalized across Practice, Baseline (calibration),
+    # and the work rounds so that the raw score scale (num_correct ×
+    # SCORE_MULTIPLIER) is comparable across rounds. Previously calibration
+    # was 60s while work rounds were 120s, which inflated the work-round
+    # signals by a factor of ~2 for any given productivity rate and broke
+    # cross-round comparability of μ, κ₁, β, and the thresholds.
+    TASK_DURATION_SECONDS = 90        # 1.5 minutes per work round
+    BASELINE_DURATION_SECONDS = 90    # 1.5 minutes calibration round
     # Decision H (H1, 2026-04-27): unpaid practice round before calibration.
     # Pure familiarisation; performance is recorded for analysis (round-covariate
-    # learning fit) but does not affect any wage offer or payment.
-    PRACTICE_DURATION_SECONDS = 60
+    # learning fit) but does not affect any wage offer or payment. Length
+    # equalized to 90s on 2026-05-03 to match the rounds it warms up for.
+    PRACTICE_DURATION_SECONDS = 90
     # Default grid for the calibration round (no investment in t=0)
     GRID_ROWS = 5
     GRID_COLS = 6
