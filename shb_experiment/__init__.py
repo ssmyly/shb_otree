@@ -641,12 +641,16 @@ class Investment(Page):
 
         # Show cost–grid menu (Decision B: tokens shrink the grid;
         # Decision C: cumulative cost rises 0 → 4 → 10 → 18 points).
+        # cost_usd is the dollar equivalent at the locked conversion rate
+        # (POINTS_PER_USD = 10), shown alongside points for saliency.
         token_table = []
         for t in range(C.MAX_TRAINING_TOKENS + 1):
             rows, cols = C.GRID_BY_TOKENS[t]
+            cost_points = C.COST_BY_TOKENS[t]
             token_table.append({
                 'tokens': t,
-                'cost': C.COST_BY_TOKENS[t],
+                'cost': cost_points,
+                'cost_usd': f"{cost_points / C.POINTS_PER_USD:.2f}",
                 'rows': rows,
                 'cols': cols,
                 'cells': rows * cols,
@@ -671,6 +675,41 @@ class Investment(Page):
             'history_beta': C.HISTORY_BETA,
             'prior_mean': int(C.PRIOR_MEAN),
             'has_history': (len(history) > 0),
+        }
+
+
+class TaskReady(Page):
+    """
+    Brief transition between Investment (where the token decision is made)
+    and Task (the timed counting round). Shows a summary of what the
+    participant just chose and warns them the timer starts immediately on
+    click. Round 2-3 only (work rounds).
+
+    Added 2026-05-03: previously the timer started the instant the
+    participant clicked Next on Investment, with no chance to pause and
+    actually be ready. This page closes that gap.
+    """
+
+    @staticmethod
+    def is_displayed(player: Player):
+        return player.round_number > 1
+
+    @staticmethod
+    def vars_for_template(player: Player):
+        rows, cols = C.GRID_BY_TOKENS[player.training_tokens]
+        cost_points = C.COST_BY_TOKENS[player.training_tokens]
+        return {
+            'round_number': player.round_number,
+            'work_round': player.round_number - 1,
+            'num_work_rounds': C.NUM_ROUNDS - 1,
+            'training_tokens': player.training_tokens,
+            'training_cost': cost_points,
+            'training_cost_usd': f"{cost_points / C.POINTS_PER_USD:.2f}",
+            'grid_rows': rows,
+            'grid_cols': cols,
+            'grid_cells': rows * cols,
+            'task_duration': C.TASK_DURATION_SECONDS,
+            'threshold': C.THRESHOLD_WORK,
         }
 
 
@@ -1017,6 +1056,7 @@ page_sequence = [
     Baseline,         # round 1 only — calibration
     BaselineResult,   # round 1 only — show wage offer (private signal)
     Investment,
+    TaskReady,        # round 2-3 only — pause before the timed task starts
     Task,
     Results,
     FinalResults,

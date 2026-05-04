@@ -75,12 +75,13 @@
 <div class="shb-card">
   <h5>💼 How many training tokens do you want to buy this round?</h5>
   <p style="font-size:0.92rem; color:#555;">Training shrinks the counting grid so you can answer more problems in the {{ task_duration }}-second window. Each step of compression is a little more expensive than the last.</p>
+  <p style="font-size:0.92rem; color:#555;"><strong>Important:</strong> training only <em>helps</em> your performance in the upcoming round (smaller grid → more problems answered). The point cost is deducted from your <em>earnings</em> (your final payment), not from your performance score in the round.</p>
 
   {% for row in token_table %}
   <label class="token-option" for="token_{{ row.tokens }}">
     <input type="radio" id="token_{{ row.tokens }}" name="training_tokens" value="{{ row.tokens }}" {% if row.tokens == 0 %}checked{% endif %}>
     <span class="token-label">{{ row.tokens }} token{% if row.tokens != 1 %}s{% endif %}</span>
-    <span class="token-cost">Cost: −{{ row.cost }} points</span>
+    <span class="token-cost">Cost: −{{ row.cost }} points (−${{ row.cost_usd }})</span>
     <span class="token-grid">Grid: {{ row.rows }}×{{ row.cols }} ({{ row.cells }} cells)</span>
   </label>
   {% endfor %}

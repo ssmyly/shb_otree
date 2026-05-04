@@ -163,10 +163,10 @@
   </div>
   {% else %}
   <div class="example-box">
-    <span class="label">Example 1 — favorable past wage.</span> Suppose your noisy reading this round is <strong>{{ example_signal }}</strong> (above the average of {{ prior_mean }}) and the wage you got in the calibration round was <strong>{{ example_w0 }}</strong> (also above average). Under your condition, the employer combines them: the part from this round is the same as in the SHB condition (about <strong>{{ example_w_shb }} points</strong>), and there is an extra bonus from your favorable past wage. Total: about <strong>{{ example_w_noshb_t1 }} points</strong> — higher than under SHB.
+    <span class="label">Example 1 — favorable past wage.</span> Suppose your noisy reading this round is <strong>{{ example_signal }}</strong> (above the average of {{ prior_mean }}) and the wage you got in the calibration round was <strong>{{ example_w0 }}</strong> (also above average). Under your condition, the employer combines them: you get some part from your current performance, and there is an extra bonus from your favorable past wage. Total: about <strong>{{ example_w_noshb_t1 }} points</strong>.
   </div>
   <div class="example-box">
-    <span class="label">Example 2 — unfavorable past wage.</span> Now suppose your past wage was <strong>below</strong> the average of {{ prior_mean }} instead. Same reading this round of {{ example_signal }}, but the past-wage piece works against you: your wage this round is <strong>lower</strong> than the SHB wage of {{ example_w_shb }} points. Past wages can help you or hurt you, depending on whether they were above or below the average.
+    <span class="label">Example 2 — unfavorable past wage.</span> Now suppose your past wage was <strong>below</strong> the average of {{ prior_mean }} instead. Same reading this round of {{ example_signal }}, but the past-wage piece works against you. Past wages can help you or hurt you, depending on whether they were above or below the average.
   </div>
   <div class="highlight-box mt-2">
     <strong>Key point:</strong> Doing well early gives you a head-start that follows you forward. A bad early wage drags later wages down. The wages you got so far are shown to you on each round.
