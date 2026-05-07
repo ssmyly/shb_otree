@@ -29,11 +29,11 @@
 <!-- Condition reminder -->
 {% if is_shb %}
 <div class="condition-banner condition-shb">
-  📋 <strong>Your condition:</strong> the employer cannot see your past wages. Your wage this round depends only on how you do this round.
+  📋 <strong>Remember:</strong> your wage in the upcoming task depends only on how you do this round.
 </div>
 {% else %}
 <div class="condition-banner condition-noshb">
-  📈 <strong>Your condition:</strong> the employer can see your past wages. Your wage this round depends on how you do this round <em>and</em> on the wages you earned before.
+  📈 <strong>Remember:</strong> the employer can see your past wages. Your wage this round depends on how you do this round <em>and</em> on the wages you earned before.
 </div>
 {% endif %}
 
@@ -64,7 +64,6 @@
       {% endfor %}
     </tbody>
   </table>
-  <p class="text-muted" style="font-size:0.88rem;">An above-average past wage helps you this round; a below-average past wage hurts you.</p>
   {% else %}
   <p class="text-muted">No past wages on record yet.</p>
   {% endif %}

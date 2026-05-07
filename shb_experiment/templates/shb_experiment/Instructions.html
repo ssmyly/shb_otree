@@ -50,20 +50,7 @@
 <h3 class="mb-3">Study Instructions</h3>
 <p class="text-muted">Please read carefully. We will ask you a short comprehension question at the end.</p>
 
-<!-- Condition banner -->
-{% if is_shb %}
-<div class="condition-banner condition-shb">
-  📋 Your condition: <strong>EMPLOYERS CANNOT SEE YOUR PAST WAGES</strong><br>
-  <small>Each wage offer you get depends only on how you do in that round.</small>
-</div>
-{% else %}
-<div class="condition-banner condition-noshb">
-  📈 Your condition: <strong>EMPLOYERS CAN SEE YOUR PAST WAGES</strong><br>
-  <small>Each wage offer you get depends on how you do in that round <em>and</em> on the wages you got before.</small>
-</div>
-{% endif %}
-
-<!-- How the study is structured -->
+<!-- How the Study is Structured -->
 <div class="shb-card">
   <div class="shb-section-header">How the study is structured</div>
   <p>The study has four short stages, in this order:</p>
@@ -78,12 +65,12 @@
   </div>
   <ul class="mt-3">
     <li><strong>Practice:</strong> a short warm-up so you can get used to the counting task. It does <em>not</em> affect your pay.</li>
-    <li><strong>Calibration round:</strong> you complete the counting task once. The employer uses your performance here to set a starting wage offer (your "past wage"). You do face the possibility of being rejected, getting 0 wage this period.The bar to clear here is lower than in the work rounds, however, since this round is just to figure out where you start.</li>
+    <li><strong>Calibration round:</strong> you complete the counting task once. The employer uses your performance here to set a starting wage offer (which does contribute to your pay). You do face the possibility of being rejected, getting 0 wage this period, if your performance is too low or your employer evaluates you unfavorably. The bar to clear here is lower than in the work rounds, however, since this round is just to figure out where you start.</li>
     <li><strong>Work rounds (2 total):</strong> in each one, you first decide how much to invest in training, then complete the counting task, then see your wage offer (always face the possibility of rejection). Both work rounds count toward your bonus.</li>
   </ul>
 </div>
 
-<!-- The counting task -->
+<!-- The Counting Task -->
 <div class="shb-card">
   <div class="shb-section-header">The counting task</div>
   <p>You will see a target digit and a grid of numbers. Count how many times the target digit appears, type the number, and click Submit. You get instant feedback (✅ or ❌) and a new problem appears. You answer as many problems as you can in the time allowed.</p>
@@ -129,7 +116,7 @@
   <p class="text-muted" style="font-size:0.9rem;">Each step of grid compression is a little more expensive than the last. The cost is taken out of your earnings for that round whether or not you are hired.</p>
 </div>
 
-<!-- Hiring and wages -->
+<!-- Hiring and Wages -->
 <div class="shb-card">
   <div class="shb-section-header">How wages are set</div>
 

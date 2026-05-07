@@ -72,7 +72,7 @@ class C(BaseConstants):
     GRID_ROWS = 5
     GRID_COLS = 6
     # Baseline uses varying grid sizes to noisily measure productivity
-    BASELINE_GRID_SIZES = [(3, 4), (4, 5), (5, 6), (5, 7), (6, 7)]
+    BASELINE_GRID_SIZES = [(3, 4), (4, 5), (5, 6)]
 
     # ── Investment parameters ─────────────────────────────────
     # Decision B (2026-04-27): investment reduces task complexity by shrinking
