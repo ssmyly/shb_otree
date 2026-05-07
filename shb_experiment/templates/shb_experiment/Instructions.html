@@ -65,8 +65,8 @@
   </div>
   <ul class="mt-3">
     <li><strong>Practice:</strong> a short warm-up so you can get used to the counting task. It does <em>not</em> affect your pay.</li>
-    <li><strong>Calibration round:</strong> you complete the counting task once. The employer uses your performance here to set a starting wage offer (which does contribute to your pay). You do face the possibility of being rejected, getting 0 wage this period, if your performance is too low or your employer evaluates you unfavorably. The bar to clear here is lower than in the work rounds, however, since this round is just to figure out where you start.</li>
-    <li><strong>Work rounds (2 total):</strong> in each one, you first decide how much to invest in training, then complete the counting task, then see your wage offer (always facing the possibility of rejection). Both work rounds count toward your bonus.</li>
+    <li><strong>Calibration round:</strong> you complete the counting task once. The employer uses your performance here to set a starting salary offer (which does contribute to your pay). You do face the possibility of being rejected, getting 0 salary this period, if your performance is too low or your employer evaluates you unfavorably. The bar to clear here is lower than in the work rounds, however, since this round is just to figure out where you start.</li>
+    <li><strong>Work rounds (2 total):</strong> in each one, you first decide how much to invest in training, then complete the counting task, then see your salary offer (always facing the possibility of rejection). Both work rounds count toward your bonus.</li>
   </ul>
 </div>
 
@@ -118,7 +118,7 @@
 
 <!-- Hiring and Wages -->
 <div class="shb-card">
-  <div class="shb-section-header">How Wages are Set</div>
+  <div class="shb-section-header">How Salaries are Set</div>
 
   <div class="step-row">
     <div class="step-circle">1</div>
@@ -126,15 +126,15 @@
   </div>
   <div class="step-row">
     <div class="step-circle">2</div>
-    <div>If that noisy reading is at or above the bar to clear that round (<strong>{{ threshold_baseline }} points</strong> in calibration; <strong>{{ threshold_work }} points</strong> in each work round), you are <strong>hired</strong> and receive a wage offer. Otherwise your wage that round is 0 (training cost is still taken out).</div>
+    <div>If that noisy reading is at or above the bar to clear that round (<strong>{{ threshold_baseline }} points</strong> in calibration; <strong>{{ threshold_work }} points</strong> in each work round), you are <strong>hired</strong> and receive a salary offer. Otherwise your salary that round is 0 (training cost is still taken out).</div>
   </div>
   <div class="step-row">
     <div class="step-circle">3</div>
     <div>
       {% if is_shb %}
-      Your wage offer depends <strong>only on this round's noisy reading</strong>. 
+      Your salary offer depends <strong>only on this round's noisy reading</strong>. 
       {% else %}
-      Your wage offer depends on <strong>this round's noisy reading and the wages you received in earlier rounds</strong>. A higher past wage gives you a higher offer this round.
+      Your salary offer depends on <strong>this round's noisy reading and the salaries you received in earlier rounds</strong>. A higher past salary gives you a higher offer this round.
       {% endif %}
     </div>
   </div>
@@ -143,17 +143,17 @@
 
   {% if is_shb %}
   <div class="example-box">
-    <span class="label">Example.</span> Suppose your noisy reading this round is <strong>{{ example_signal }}</strong> (above the average of {{ prior_mean }}). The employer sets your wage by starting at the average and moving partway toward how they assess you. In this study that gives a wage of about <strong>{{ example_w_shb }} points</strong>.
+    <span class="label">Example.</span> Suppose your noisy reading this round is <strong>{{ example_signal }}</strong> (above the average of {{ prior_mean }}). The employer sets your salary by starting at the average and moving partway toward how they assess you. In this study that gives a salary of about <strong>{{ example_w_shb }} points</strong>.
   </div>
   {% else %}
   <div class="example-box">
-    <span class="label">Example 1 — favorable past wage.</span> Suppose your noisy reading this round is <strong>{{ example_signal }}</strong> (above the average of {{ prior_mean }}) and the wage you got in the calibration round was <strong>{{ example_w0 }}</strong> (also above average). The employer combines them: you get some part from your current performance, and there is an extra bonus from your favorable past wage. Total: about <strong>{{ example_w_noshb_t1 }} points</strong>.
+    <span class="label">Example 1 — favorable past salary.</span> Suppose your noisy reading this round is <strong>{{ example_signal }}</strong> (above the average of {{ prior_mean }}) and the salary you got in the calibration round was <strong>{{ example_w0 }}</strong> (also above average). The employer combines them: you get some part from your current performance, and there is an extra bonus from your favorable past salary. Total: about <strong>{{ example_w_noshb_t1 }} points</strong>.
   </div>
   <div class="example-box">
-    <span class="label">Example 2 — unfavorable past wage.</span> Now suppose your past wage was <strong>below</strong> the average of {{ prior_mean }} instead. Same reading this round of {{ example_signal }}, but the past-wage piece works against you. Past wages can help you or hurt you, depending on whether they were above or below the average.
+    <span class="label">Example 2 — unfavorable past salary.</span> Now suppose your past salary was <strong>below</strong> the average of {{ prior_mean }} instead. Same reading this round of {{ example_signal }}, but the past-salary piece works against you. Past salaries can help you or hurt you, depending on whether they were above or below the average.
   </div>
   <div class="highlight-box mt-2">
-    <strong>Key point:</strong> Doing well early gives you a head-start that follows you forward. A bad early wage drags later wages down. The wages you got so far are shown to you on each round.
+    <strong>Key point:</strong> Doing well early gives you a head-start that follows you forward. A bad early salary drags later salaries down. The salaries you got so far are shown to you on each round.
   </div>
   {% endif %}
 </div>
@@ -162,7 +162,7 @@
 <div class="shb-card">
   <div class="shb-section-header">How You Get Paid</div>
   <ul>
-    <li>Each round's <strong>net earnings</strong> = wage − training cost (never below 0).</li>
+    <li>Each round's <strong>net earnings</strong> = salary − training cost (never below 0).</li>
     <li>Your <strong>total bonus</strong> is the sum of net earnings across the calibration round and the two work rounds.</li>
     <li>You also get a <strong>${{ participation_fee_usd }} base payment</strong> for completing the study.</li>
     <li>Bonus points are converted to dollars at <strong>{{ points_per_usd }} points = $1</strong>.</li>
@@ -174,8 +174,8 @@
   <strong>Quick recap of the flow:</strong>
   <ol class="mt-2">
     <li>Practice round (warm-up, no pay).</li>
-    <li>Calibration round (counting task → starting wage offer).</li>
-    <li>Work round 1: pick training tokens → counting task → see your wage.</li>
+    <li>Calibration round (counting task → starting salary offer).</li>
+    <li>Work round 1: pick training tokens → counting task → see your salary.</li>
     <li>Work round 2: same as work round 1.</li>
     <li>Final summary and a short exit survey.</li>
   </ol>

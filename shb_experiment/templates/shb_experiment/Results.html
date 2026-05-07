@@ -18,7 +18,7 @@
   {% if hired %}
   <div class="wage-hero hired">
     <div style="color:#155724; font-size:1.1rem;">✅ Hired this round</div>
-    <div class="wage-amount">Wage: {{ wage }} points</div>
+    <div class="wage-amount">Salary: {{ wage }} points</div>
     <div style="color:#155724; margin-top:0.4rem;">Bar to clear was {{ threshold }} points; you cleared it.</div>
   </div>
   {% else %}
@@ -32,16 +32,16 @@
   <div class="summary-line">
     Training tokens this round: <strong>{{ training_tokens }}</strong>
     ({{ grid_rows_used }}×{{ grid_cols_used }} grid, cost {{ training_cost }} points)<br>
-    Net this round: wage − training cost = {{ wage }} − {{ training_cost }} = <strong>{{ net_floored }} points</strong>
+    Net this round: salary − training cost = {{ wage }} − {{ training_cost }} = <strong>{{ net_floored }} points</strong>
   </div>
 </div>
 
 {% if not is_shb and has_history %}
 <div class="result-card">
-  <h5>📊 Your past wages</h5>
-  <p class="text-muted" style="font-size:0.9rem;">The employer can see these wages when setting your offer in later rounds.</p>
+  <h5>📊 Your past salaries</h5>
+  <p class="text-muted" style="font-size:0.9rem;">The employer can see these salaries when setting your offer in later rounds.</p>
   <table class="table history table-bordered table-sm">
-    <thead><tr><th>Round</th><th>Type</th><th>Tokens</th><th>Hired?</th><th>Wage (points)</th></tr></thead>
+    <thead><tr><th>Round</th><th>Type</th><th>Tokens</th><th>Hired?</th><th>Salary (points)</th></tr></thead>
     <tbody>
       {% for row in history %}
       <tr>
