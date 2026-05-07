@@ -74,7 +74,6 @@
 <div class="shb-card">
   <h5>💼 How many training tokens do you want to buy this round?</h5>
   <p style="font-size:0.92rem; color:#555;">Training shrinks the counting grid so you can answer more problems in the {{ task_duration }}-second window. Each step of compression is a little more expensive than the last.</p>
-  <p style="font-size:0.92rem; color:#555;"><strong>Important:</strong> training only <em>helps</em> your performance in the upcoming round (smaller grid → more problems answered). The point cost is deducted from your <em>earnings</em> (your final payment), not from your performance score in the round.</p>
 
   {% for row in token_table %}
   <label class="token-option" for="token_{{ row.tokens }}">
