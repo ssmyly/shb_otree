@@ -296,7 +296,7 @@ class Player(BasePlayer):
         blank=True,
     )
     comp_check_info = models.StringField(
-        label="Under your condition, what did the employer use to determine your wage?",
+        label="What did the employer use to determine your wage?",
         blank=True,
     )
 
