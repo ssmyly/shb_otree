@@ -3,8 +3,6 @@
 {{ block content }}
 <style>
   .task-card { border: 1px solid #dee2e6; border-radius: 8px; padding: 1.5rem; background: #fff; margin-bottom: 1rem; }
-  .timer-bar { background: #2c3e50; color: white; padding: 0.6rem 1.2rem; border-radius: 6px; font-weight: 700; font-size: 1.1rem; display: inline-block; }
-  .timer-bar.warn { background: #c0392b; }
   .score-bar  { background: #27ae60; color: white; padding: 0.6rem 1.2rem; border-radius: 6px; font-weight: 700; font-size: 1.1rem; display: inline-block; margin-left: 0.5rem; }
   .target-box { background: #fff8e1; border: 2px solid #f0ad4e; border-radius: 8px; padding: 1rem 1.5rem; display: inline-block; margin: 1rem 0; }
   .target-digit { font-size: 2.6rem; font-weight: 800; color: #d4a000; line-height: 1; }
@@ -37,7 +35,6 @@
 
 <div class="task-card">
   <div>
-    <span class="timer-bar">⏱ Time: <span id="timer">{{ task_duration }}</span>s</span>
     <span class="score-bar">✓ Correct: <span id="score-counter">0</span></span>
     <span style="float:right; color:#666; padding-top:0.6rem;">
       Work round {{ work_round }} of {{ num_work_rounds }}
@@ -86,18 +83,13 @@
 
   const ROWS = {{ grid_rows }};
   const COLS = {{ grid_cols }};
-  const DURATION = {{ task_duration }};
 
   let numCorrect = 0;
   let problemHistory = [];
-  // Remaining seconds from the server-side expiry timestamp — accurate on first
-  // load and on every refresh, with no client-side drift.
-  let timeRemaining = {{ server_remaining }};
   let currentTarget = null;
   let currentGrid = null;
   let currentTrueCount = null;
   let problemStartTime = null;
-  let submitted = false;
 
   function genGrid(rows, cols) {
     const cells = [];
@@ -125,7 +117,6 @@
   }
 
   function submitAnswer() {
-    if (submitted) return;
     const raw = document.getElementById('answer-input').value;
     if (raw === '') return;
     const ans = parseInt(raw, 10);
@@ -146,7 +137,6 @@
       answered: ans,
       correct: correct,
       rt_ms: Date.now() - problemStartTime,
-      time_left: timeRemaining,
     });
     // Keep the hidden form fields in sync after every answer so the latest
     // count is recorded no matter how the form ends up being submitted.
@@ -155,51 +145,12 @@
     setTimeout(newProblem, 700);
   }
 
-  function tick() {
-    timeRemaining--;
-    document.getElementById('timer').textContent = timeRemaining;
-    if (timeRemaining <= 10) {
-      document.querySelector('.timer-bar').classList.add('warn');
-    }
-    if (timeRemaining <= 0) {
-      finalizeAndSubmit();
-    } else {
-      setTimeout(tick, 1000);
-    }
-  }
-
-  function finalizeAndSubmit() {
-    if (submitted) return;
-    submitted = true;
-    document.getElementById('id_num_correct').value = numCorrect;
-    document.getElementById('id_task_data_json').value = JSON.stringify(problemHistory);
-    // Click oTree's auto-generated next button to submit the outer form
-    const nextBtn = document.querySelector('.otree-btn-next');
-    if (nextBtn) {
-      nextBtn.click();
-    } else {
-      // Fallback: submit the outer form directly
-      document.querySelector('form').submit();
-    }
-  }
-
   document.addEventListener('DOMContentLoaded', () => {
-    // Immediately correct the displayed time (HTML renders full duration by default).
-    document.getElementById('timer').textContent = timeRemaining;
-    if (timeRemaining <= 10) {
-      document.querySelector('.timer-bar').classList.add('warn');
-    }
-    // If the page was reloaded after the timer already expired, submit at once.
-    if (timeRemaining <= 0) {
-      finalizeAndSubmit();
-      return;
-    }
     document.getElementById('submit-btn').addEventListener('click', submitAnswer);
     document.getElementById('answer-input').addEventListener('keydown', (e) => {
       if (e.key === 'Enter') { e.preventDefault(); submitAnswer(); }
     });
     newProblem();
-    setTimeout(tick, 1000);
   });
 })();
 </script>
