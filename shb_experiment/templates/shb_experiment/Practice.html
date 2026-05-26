@@ -70,13 +70,27 @@
 
 <script>
 (function () {
+  // Prevent back / forward navigation on timed pages.
+  history.pushState(null, null, location.href);
+  window.addEventListener('popstate', function () {
+    history.pushState(null, null, location.href);
+  });
+
   const ROWS = {{ grid_rows }};
   const COLS = {{ grid_cols }};
   const DURATION = {{ task_duration }};
 
+  // Recover elapsed time on refresh so the displayed timer is always accurate.
+  // sessionStorage is per-tab and clears when the tab closes — safe for one participant per tab.
+  const _timerKey = 'shb_timer_' + window.location.pathname;
+  if (!sessionStorage.getItem(_timerKey)) {
+    sessionStorage.setItem(_timerKey, Date.now().toString());
+  }
+  const _elapsed = Math.floor((Date.now() - parseInt(sessionStorage.getItem(_timerKey))) / 1000);
+
   let numCorrect = 0;
   let problemHistory = [];
-  let timeRemaining = DURATION;
+  let timeRemaining = Math.max(0, DURATION - _elapsed);
   let currentTarget = null;
   let currentGrid = null;
   let currentTrueCount = null;
@@ -168,6 +182,16 @@
   }
 
   document.addEventListener('DOMContentLoaded', () => {
+    // Immediately correct the displayed time (HTML renders full duration by default).
+    document.getElementById('timer').textContent = timeRemaining;
+    if (timeRemaining <= 10) {
+      document.querySelector('.timer-bar').classList.add('warn');
+    }
+    // If the page was reloaded after the timer already expired, submit at once.
+    if (timeRemaining <= 0) {
+      finalizeAndSubmit();
+      return;
+    }
     document.getElementById('submit-btn').addEventListener('click', submitAnswer);
     document.getElementById('answer-input').addEventListener('keydown', (e) => {
       if (e.key === 'Enter') { e.preventDefault(); submitAnswer(); }
