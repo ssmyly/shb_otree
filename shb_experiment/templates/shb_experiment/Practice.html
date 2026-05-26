@@ -7,6 +7,8 @@
     background: #f3e9fb; border-left: 4px solid #8e44ad;
     padding: 0.85rem 1.25rem; border-radius: 4px; margin-bottom: 1rem; font-size: 0.95rem;
   }
+  .timer-bar { background: #2c3e50; color: white; padding: 0.6rem 1.2rem; border-radius: 6px; font-weight: 700; font-size: 1.1rem; display: inline-block; }
+  .timer-bar.warn { background: #c0392b; }
   .score-bar  { background: #27ae60; color: white; padding: 0.6rem 1.2rem; border-radius: 6px; font-weight: 700; font-size: 1.1rem; display: inline-block; margin-left: 0.5rem; }
   .target-box { background: #fff8e1; border: 2px solid #f0ad4e; border-radius: 8px; padding: 1rem 1.5rem; display: inline-block; margin: 1rem 0; }
   .target-digit { font-size: 2.6rem; font-weight: 800; color: #d4a000; line-height: 1; }
@@ -34,6 +36,7 @@
 
 <div class="task-card">
   <div>
+    <span class="timer-bar">⏱ Time: <span id="timer">{{ task_duration }}</span>s</span>
     <span class="score-bar">✓ Correct: <span id="score-counter">0</span></span>
   </div>
 
@@ -78,6 +81,7 @@
 
   let numCorrect = 0;
   let problemHistory = [];
+  let timeRemaining = {{ server_remaining }};
   let currentTarget = null;
   let currentGrid = null;
   let currentTrueCount = null;
@@ -139,12 +143,28 @@
     setTimeout(newProblem, 700);
   }
 
+  function tick() {
+    timeRemaining--;
+    document.getElementById('timer').textContent = timeRemaining;
+    if (timeRemaining <= 10) {
+      document.querySelector('.timer-bar').classList.add('warn');
+    }
+    if (timeRemaining > 0) {
+      setTimeout(tick, 1000);
+    }
+  }
+
   document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('timer').textContent = timeRemaining;
+    if (timeRemaining <= 10) {
+      document.querySelector('.timer-bar').classList.add('warn');
+    }
     document.getElementById('submit-btn').addEventListener('click', submitAnswer);
     document.getElementById('answer-input').addEventListener('keydown', (e) => {
       if (e.key === 'Enter') { e.preventDefault(); submitAnswer(); }
     });
     newProblem();
+    if (timeRemaining > 0) { setTimeout(tick, 1000); }
   });
 })();
 </script>

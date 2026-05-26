@@ -28,6 +28,7 @@ from otree.api import *
 import random
 import json
 import math
+import time
 
 
 # ─────────────────────────────────────────────────────────────
@@ -508,10 +509,13 @@ class Practice(Page):
     @staticmethod
     def vars_for_template(player: Player):
         rows, cols = C.GRID_BY_TOKENS[0]
+        expiry = getattr(player.participant, '_timeout_expiration_time', None)
+        server_remaining = max(0, round(expiry - time.time())) if expiry else C.PRACTICE_DURATION_SECONDS
         return {
             'task_duration': C.PRACTICE_DURATION_SECONDS,
             'grid_rows': rows,
             'grid_cols': cols,
+            'server_remaining': server_remaining,
         }
 
 
@@ -561,9 +565,12 @@ class Baseline(Page):
 
     @staticmethod
     def vars_for_template(player: Player):
+        expiry = getattr(player.participant, '_timeout_expiration_time', None)
+        server_remaining = max(0, round(expiry - time.time())) if expiry else C.BASELINE_DURATION_SECONDS
         return {
             'task_duration': C.BASELINE_DURATION_SECONDS,
             'grid_sizes_json': json.dumps(C.BASELINE_GRID_SIZES),
+            'server_remaining': server_remaining,
         }
 
     @staticmethod
@@ -739,6 +746,8 @@ class Task(Page):
         rows, cols = C.GRID_BY_TOKENS[player.training_tokens]
         # Persist for downstream display / analysis (the actual write happens
         # in before_next_page; we mirror it here so the template renders).
+        expiry = getattr(player.participant, '_timeout_expiration_time', None)
+        server_remaining = max(0, round(expiry - time.time())) if expiry else C.TASK_DURATION_SECONDS
         return {
             'round_number': player.round_number,
             'work_round': player.round_number - 1,
@@ -753,6 +762,7 @@ class Task(Page):
             'grid_cols': cols,
             'grid_cells': rows * cols,
             'score_multiplier': C.SCORE_MULTIPLIER,
+            'server_remaining': server_remaining,
         }
 
     @staticmethod
