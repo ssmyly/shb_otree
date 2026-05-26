@@ -80,17 +80,11 @@
   const COLS = {{ grid_cols }};
   const DURATION = {{ task_duration }};
 
-  // Recover elapsed time on refresh so the displayed timer is always accurate.
-  // sessionStorage is per-tab and clears when the tab closes — safe for one participant per tab.
-  const _timerKey = 'shb_timer_' + window.location.pathname;
-  if (!sessionStorage.getItem(_timerKey)) {
-    sessionStorage.setItem(_timerKey, Date.now().toString());
-  }
-  const _elapsed = Math.floor((Date.now() - parseInt(sessionStorage.getItem(_timerKey))) / 1000);
-
   let numCorrect = 0;
   let problemHistory = [];
-  let timeRemaining = Math.max(0, DURATION - _elapsed);
+  // Remaining seconds from the server-side expiry timestamp — accurate on first
+  // load and on every refresh, with no client-side drift.
+  let timeRemaining = {{ server_remaining }};
   let currentTarget = null;
   let currentGrid = null;
   let currentTrueCount = null;
