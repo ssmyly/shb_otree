@@ -464,6 +464,7 @@ class Instructions(Page):
             token_menu.append({
                 'tokens': t,
                 'cost': C.COST_BY_TOKENS[t],
+                'cost_usd': f"{C.COST_BY_TOKENS[t] / C.POINTS_PER_USD:.2f}",
                 'rows': rows,
                 'cols': cols,
                 'cells': rows * cols,
