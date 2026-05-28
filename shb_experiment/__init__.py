@@ -140,7 +140,7 @@ class C(BaseConstants):
     # Participants see all monetary amounts in "points" (settings.py sets
     # real_world_currency_per_point=0.10, so 1 point = $0.10).
     POINTS_PER_USD = 10            # 10 points = $1
-    PARTICIPATION_FEE_POINTS = 30  # $3.00 base pay (30 points)
+    PARTICIPATION_FEE_POINTS = 18  # $1.80 base pay — covers cost of all 3 tokens (bank floor)
 
     # ── Dollar-denominated display values ────────────────────────
     # Signal threshold converts to a wage threshold via w = μ + κ₁(s − μ),
@@ -409,6 +409,22 @@ def format_currency(val: float) -> str:
     return f"{val:.2f}"
 
 
+def compute_bank_balance(player: Player) -> float:
+    """
+    Available bank balance in USD at the start of this investment decision.
+    = participation fee + wages earned in all previous rounds - token costs spent in previous work rounds.
+    Always ≥ 0 when the budget constraint is enforced.
+    """
+    balance = C.PARTICIPATION_FEE_POINTS
+    for pr in player.in_previous_rounds():
+        if pr.round_number == 1:
+            balance += pr.baseline_wage_offer   # 0 if not hired
+        else:
+            balance += pr.wage                  # 0 if not hired
+            balance -= pr.training_cost
+    return round(balance / C.POINTS_PER_USD, 2)
+
+
 # ─────────────────────────────────────────────────────────────
 #  PAGES
 # ─────────────────────────────────────────────────────────────
@@ -673,25 +689,40 @@ class Investment(Page):
         return player.round_number > 1
 
     @staticmethod
+    def error_message(player: Player, values: dict):
+        tokens = values.get('training_tokens', 0)
+        bank_usd = compute_bank_balance(player)
+        cost_usd = C.COST_BY_TOKENS[tokens] / C.POINTS_PER_USD
+        if cost_usd > bank_usd:
+            return (
+                f"You cannot afford {tokens} token{'s' if tokens != 1 else ''}. "
+                f"Cost: ${cost_usd:.2f}, your available balance: ${bank_usd:.2f}."
+            )
+
+    @staticmethod
     def vars_for_template(player: Player):
         condition = get_condition(player)
         is_shb = (condition == 'shb')
         history = get_salary_history(player)
+        bank_balance_usd = compute_bank_balance(player)
 
         # Show cost–grid menu (Decision B: tokens shrink the grid;
         # Decision C: cumulative cost rises 0 → 4 → 10 → 18 points).
         # cost_usd is the dollar equivalent shown to participants.
+        # affordable flags whether the participant's current bank covers this option.
         token_table = []
         for t in range(C.MAX_TRAINING_TOKENS + 1):
             rows, cols = C.GRID_BY_TOKENS[t]
             cost_points = C.COST_BY_TOKENS[t]
+            cost_usd = cost_points / C.POINTS_PER_USD
             token_table.append({
                 'tokens': t,
                 'cost': cost_points,
-                'cost_usd': f"{cost_points / C.POINTS_PER_USD:.2f}",
+                'cost_usd': f"{cost_usd:.2f}",
                 'rows': rows,
                 'cols': cols,
                 'cells': rows * cols,
+                'affordable': cost_usd <= bank_balance_usd,
             })
 
         return {
@@ -714,6 +745,7 @@ class Investment(Page):
             'prior_mean': int(C.PRIOR_MEAN),
             'has_history': (len(history) > 0),
             'threshold_usd': f"{C.THRESHOLD_WORK_USD:.2f}",
+            'bank_balance_usd': f"{bank_balance_usd:.2f}",
         }
 
 
@@ -863,6 +895,7 @@ class Results(Page):
             'signal': player.signal,
             'hired': player.hired,
             'wage': round(player.wage, 2),
+            'wage_usd': f"{player.wage / C.POINTS_PER_USD:.2f}",
         }]
 
         # Wage decomposition for display (Decision D, D2):

@@ -22,6 +22,11 @@
   .token-option .token-cost   { font-size: 0.9rem; color: #c0392b; font-weight: 600; }
   .token-option .token-grid   { font-size: 0.9rem; color: #2c3e50; font-weight: 600; }
   .threshold-note { background: #fff8e1; border-left: 3px solid #ffc107; padding: 0.6rem 1rem; border-radius: 4px; font-size: 0.9rem; }
+  .bank-balance-bar { background: #e8f5e9; border: 1px solid #a5d6a7; border-radius: 6px; padding: 0.65rem 1rem; margin-bottom: 1.2rem; font-size: 0.95rem; }
+  .bank-balance-bar strong { color: #1b5e20; font-size: 1.05rem; }
+  .token-option.token-disabled { opacity: 0.45; cursor: not-allowed; background: #f8f9fa; border-color: #ced4da; }
+  .token-option.token-disabled:hover { border-color: #ced4da; background: #f8f9fa; }
+  .token-unaffordable { font-size: 0.82rem; color: #6c757d; font-style: italic; margin-left: auto; }
 </style>
 
 <div class="round-badge">Work round {{ work_round }} of {{ num_work_rounds }}</div>
@@ -75,12 +80,19 @@
   <h5>💼 How many training tokens do you want to buy this round?</h5>
   <p style="font-size:0.92rem; color:#555;">Training shrinks the counting grid so you can answer more problems in the {{ task_duration }}-second window. Each step of compression is a little more expensive than the last.</p>
 
+  <div class="bank-balance-bar">
+    💰 <strong>Available balance: ${{ bank_balance_usd }}</strong> — you can only choose options your balance covers.
+  </div>
+
   {% for row in token_table %}
-  <label class="token-option" for="token_{{ row.tokens }}">
-    <input type="radio" id="token_{{ row.tokens }}" name="training_tokens" value="{{ row.tokens }}" {% if row.tokens == 0 %}checked{% endif %}>
+  <label class="token-option{% if not row.affordable %} token-disabled{% endif %}" for="token_{{ row.tokens }}">
+    <input type="radio" id="token_{{ row.tokens }}" name="training_tokens" value="{{ row.tokens }}"
+      {% if row.tokens == 0 %}checked{% endif %}
+      {% if not row.affordable %}disabled{% endif %}>
     <span class="token-label">{{ row.tokens }} token{% if row.tokens != 1 %}s{% endif %}</span>
     <span class="token-cost">Cost: −${{ row.cost_usd }}</span>
     <span class="token-grid">Grid: {{ row.rows }}×{{ row.cols }} ({{ row.cells }} cells)</span>
+    {% if not row.affordable %}<span class="token-unaffordable">insufficient balance</span>{% endif %}
   </label>
   {% endfor %}
 
