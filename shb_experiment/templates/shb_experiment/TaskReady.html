@@ -29,7 +29,7 @@
   <div class="summary-line">
     <strong>Training tokens purchased:</strong> {{ training_tokens }}
     {% if training_cost > 0 %}
-      &nbsp;<span style="color:#c0392b;">(cost: −{{ training_cost }} points / −${{ training_cost_usd }})</span>
+      &nbsp;<span style="color:#c0392b;">(cost: −${{ training_cost_usd }})</span>
     {% else %}
       &nbsp;<span style="color:#27ae60;">(no cost)</span>
     {% endif %}
@@ -41,7 +41,7 @@
     <strong>Time on the clock:</strong> {{ task_duration }} seconds
   </div>
   <div class="summary-line">
-    <strong>Bar to clear:</strong> {{ threshold }} points
+    <strong>Minimum offer to be hired:</strong> ${{ threshold_usd }}
   </div>
 
   <div class="next-up">

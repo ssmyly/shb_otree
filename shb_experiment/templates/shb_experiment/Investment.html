@@ -49,7 +49,7 @@
         <th>Type</th>
         <th>Tokens</th>
         <th>Hired?</th>
-        <th>Salary (points)</th>
+        <th>Salary ($)</th>
       </tr>
     </thead>
     <tbody>
@@ -59,7 +59,7 @@
         <td>{% if row.is_calibration %}Calibration{% else %}Work{% endif %}</td>
         <td>{{ row.tokens }}</td>
         <td>{% if row.hired %}<span class="hired-yes">YES</span>{% else %}<span class="hired-no">NO</span>{% endif %}</td>
-        <td>{{ row.wage }}</td>
+        <td>${{ row.wage_usd }}</td>
       </tr>
       {% endfor %}
     </tbody>
@@ -79,7 +79,7 @@
   <label class="token-option" for="token_{{ row.tokens }}">
     <input type="radio" id="token_{{ row.tokens }}" name="training_tokens" value="{{ row.tokens }}" {% if row.tokens == 0 %}checked{% endif %}>
     <span class="token-label">{{ row.tokens }} token{% if row.tokens != 1 %}s{% endif %}</span>
-    <span class="token-cost">Cost: −{{ row.cost }} points (−${{ row.cost_usd }})</span>
+    <span class="token-cost">Cost: −${{ row.cost_usd }}</span>
     <span class="token-grid">Grid: {{ row.rows }}×{{ row.cols }} ({{ row.cells }} cells)</span>
   </label>
   {% endfor %}
@@ -87,8 +87,8 @@
   {{ formfield_errors 'training_tokens' }}
 
   <div class="threshold-note mt-3">
-    ⚠️ <strong>The bar to clear this round = {{ threshold }} points.</strong> If your noisy reading falls below {{ threshold }}, your salary this round = 0 points (training cost is still taken out).
-    <br><small>The employer reads your performance score with random noise between {{ noise_min }} and +{{ noise_max }} points added on.</small>
+    ⚠️ <strong>You are hired this round if your wage offer would be at least ${{ threshold_usd }}.</strong> If you fall below that bar, your salary = $0.00 (training cost is still taken out).
+    <br><small>The employer assesses your performance with random variation of up to ±$0.40 on your wage offer.</small>
   </div>
 </div>
 

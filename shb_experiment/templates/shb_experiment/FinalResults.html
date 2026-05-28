@@ -17,8 +17,7 @@
     <div style="color:#155724; font-size:1.1rem;">Total payment</div>
     <div class="pay-amount">${{ total_usd }}</div>
     <div style="color:#666; margin-top:0.5rem;">
-      ${{ participation_usd }} base + ${{ bonus_usd }} bonus<br>
-      ({{ total_bonus_points }} points earned ÷ {{ points_per_usd }} points per dollar = ${{ bonus_usd }} bonus)
+      ${{ participation_usd }} base + ${{ bonus_usd }} bonus
     </div>
   </div>
 </div>
@@ -32,11 +31,10 @@
         <th>Type</th>
         <th>Grid faced</th>
         <th>Tokens</th>
-        <th>Cost (pts)</th>
-        <th>Reading</th>
+        <th>Cost ($)</th>
         <th>Hired?</th>
-        <th>Salary (pts)</th>
-        <th>Net (pts)</th>
+        <th>Salary ($)</th>
+        <th>Net ($)</th>
       </tr>
     </thead>
     <tbody>
@@ -46,11 +44,10 @@
         <td>{% if r.is_calibration %}Calibration{% else %}Work{% endif %}</td>
         <td>{{ r.grid }}</td>
         <td>{{ r.tokens }}</td>
-        <td>{{ r.cost }}</td>
-        <td>{{ r.signal }}</td>
+        <td>${{ r.cost_usd }}</td>
         <td>{% if r.hired %}YES{% else %}NO{% endif %}</td>
-        <td>{{ r.wage }}</td>
-        <td>{{ r.net }}</td>
+        <td>${{ r.wage_usd }}</td>
+        <td>${{ r.net_usd }}</td>
       </tr>
       {% endfor %}
     </tbody>
@@ -60,7 +57,7 @@
     <strong>Totals:</strong> {{ total_correct }} problems correct &middot;
     {{ total_tokens }} training tokens purchased &middot;
     Hired in {{ times_hired }} of {{ num_rounds }} rounds &middot;
-    Total bonus: {{ total_bonus_points }} points
+    Total bonus: ${{ bonus_usd }}
   </p>
 </div>
 

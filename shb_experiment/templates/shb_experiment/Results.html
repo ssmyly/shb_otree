@@ -18,21 +18,24 @@
   {% if hired %}
   <div class="wage-hero hired">
     <div style="color:#155724; font-size:1.1rem;">✅ Hired this round</div>
-    <div class="wage-amount">Salary: {{ wage }} points</div>
-    <div style="color:#155724; margin-top:0.4rem;">Bar to clear was {{ threshold }} points; you cleared it.</div>
+    <div class="wage-amount">Salary: ${{ wage_usd }}</div>
+    <div style="color:#155724; margin-top:0.4rem;">Above the ${{ threshold_usd }} minimum — you were hired.</div>
   </div>
   {% else %}
   <div class="wage-hero nohire">
     <div style="font-size:1.5rem; font-weight:700; color:#c0392b;">❌ Not hired this round</div>
-    <div style="color:#721c24;">Wage: 0 points (training cost is still taken out).</div>
-    <div style="color:#721c24; margin-top:0.4rem;">Bar to clear was {{ threshold }} points.</div>
+    <div style="color:#721c24;">
+      Based on your performance, the employer's offer would have been
+      <strong>${{ wage_counterfactual_usd }}</strong> — below the ${{ threshold_usd }} minimum.
+      Salary: $0.00 (training cost is still taken out).
+    </div>
   </div>
   {% endif %}
 
   <div class="summary-line">
     Training tokens this round: <strong>{{ training_tokens }}</strong>
-    ({{ grid_rows_used }}×{{ grid_cols_used }} grid, cost {{ training_cost }} points)<br>
-    Net this round: salary − training cost = {{ wage }} − {{ training_cost }} = <strong>{{ net_floored }} points</strong>
+    ({{ grid_rows_used }}×{{ grid_cols_used }} grid, cost ${{ training_cost_usd }})<br>
+    Net this round: salary − training cost = ${{ wage_usd }} − ${{ training_cost_usd }} = <strong>${{ net_floored_usd }}</strong>
   </div>
 </div>
 
@@ -41,7 +44,7 @@
   <h5>📊 Your past salaries</h5>
   <p class="text-muted" style="font-size:0.9rem;">The employer can see these salaries when setting your offer in later rounds.</p>
   <table class="table history table-bordered table-sm">
-    <thead><tr><th>Round</th><th>Type</th><th>Tokens</th><th>Hired?</th><th>Salary (points)</th></tr></thead>
+    <thead><tr><th>Round</th><th>Type</th><th>Tokens</th><th>Hired?</th><th>Salary ($)</th></tr></thead>
     <tbody>
       {% for row in history %}
       <tr>
@@ -49,7 +52,7 @@
         <td>{% if row.round == 1 %}Calibration{% elif row.round == round_number %}This round{% else %}Work{% endif %}</td>
         <td>{{ row.tokens }}</td>
         <td>{% if row.hired %}YES{% else %}NO{% endif %}</td>
-        <td>{{ row.wage }}</td>
+        <td>${{ row.wage_usd }}</td>
       </tr>
       {% endfor %}
     </tbody>

@@ -21,7 +21,7 @@
   {% if hired %}
   <div class="wage-hero hired">
     <div class="wage-label">Starting salary offer</div>
-    <div class="wage-amount">{{ wage_offer }} points</div>
+    <div class="wage-amount">${{ wage_offer_usd }}</div>
     <div style="color:#155724; margin-top:0.5rem;">✅ You cleared the bar this round.</div>
   </div>
   {% else %}
@@ -29,7 +29,9 @@
     <div class="wage-label">Starting assessment</div>
     <div class="nohire-msg">Not hired this round</div>
     <div style="color:#721c24; margin-top:0.5rem;">
-      Your performance fell below the bar to clear ({{ threshold }} points). Your starting salary is 0.
+      Based on your performance, the employer's offer would have been
+      <strong>${{ wage_counterfactual_usd }}</strong> — below the ${{ threshold_usd }} minimum.
+      Your salary this round is $0.00.
     </div>
   </div>
   {% endif %}
@@ -40,7 +42,7 @@
     {% if is_shb %}
       The employer always sets your salary from the current round's performance.
     {% else %}
-      The employer set this starting salary from only this round's performance. However, in the future, employers will look at your salary from this round as a past salary to set your future offers. 
+      The employer set this starting salary from only this round's performance. However, in the future, employers will look at your salary from this round as a past salary to set your future offers.
     {% endif %}
   </div>
 </div>

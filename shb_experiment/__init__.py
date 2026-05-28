@@ -142,6 +142,19 @@ class C(BaseConstants):
     POINTS_PER_USD = 10            # 10 points = $1
     PARTICIPATION_FEE_POINTS = 30  # $3.00 base pay (30 points)
 
+    # ── Dollar-denominated display values ────────────────────────
+    # Signal threshold converts to a wage threshold via w = μ + κ₁(s − μ),
+    # so signal ≥ r  ⟺  wage ≥ μ + κ₁(r − μ).
+    # All participant-facing displays use these dollar equivalents; the
+    # underlying signal/points scale is never shown to participants.
+    THRESHOLD_BASELINE_USD = round(
+        (PRIOR_MEAN + KAPPA_1 * (THRESHOLD_BASELINE - PRIOR_MEAN)) / POINTS_PER_USD, 2
+    )  # = 4.80
+    THRESHOLD_WORK_USD = round(
+        (PRIOR_MEAN + KAPPA_1 * (THRESHOLD_WORK - PRIOR_MEAN)) / POINTS_PER_USD, 2
+    )  # = 5.20
+    NOISE_WAGE_RANGE_USD = round(KAPPA_1 * NOISE_Q / POINTS_PER_USD, 2)  # = 0.40
+
 
 # ─────────────────────────────────────────────────────────────
 #  MODELS
@@ -227,7 +240,9 @@ class Player(BasePlayer):
 
     # ── Financials ────────────────────────────────────────────
     training_cost = models.FloatField(initial=0.0)
-    round_net = models.FloatField(initial=0.0)     # wage - training_cost (pre-floor)
+    round_net = models.FloatField(initial=0.0)             # wage - training_cost (pre-floor)
+    wage_counterfactual = models.FloatField(initial=0.0)          # wage formula value regardless of hiring
+    baseline_wage_counterfactual = models.FloatField(initial=0.0)  # same for calibration round
 
     # ── Task data (serialised JSON for debugging / analysis) ──
     task_data_json = models.LongStringField(initial='[]')
@@ -290,7 +305,7 @@ class Player(BasePlayer):
         label="What did training tokens do in this study?",
         choices=[
             'They reduced the size of the counting grid',
-            'They added bonus points to my score',
+            'They directly increased my wage offer',
             'They gave me hints during the task',
             'They changed the wage formula',
         ],
@@ -374,6 +389,7 @@ def get_salary_history(player: Player) -> list[dict]:
                 'signal': pr.baseline_signal,
                 'hired': pr.baseline_hired,
                 'wage': round(pr.baseline_wage_offer, 2),
+                'wage_usd': f"{pr.baseline_wage_offer / C.POINTS_PER_USD:.2f}",
                 'is_calibration': True,
             })
         else:
@@ -383,6 +399,7 @@ def get_salary_history(player: Player) -> list[dict]:
                 'signal': pr.signal,
                 'hired': pr.hired,
                 'wage': round(pr.wage, 2),
+                'wage_usd': f"{pr.wage / C.POINTS_PER_USD:.2f}",
                 'is_calibration': False,
             })
     return history
@@ -479,7 +496,14 @@ class Instructions(Page):
             'example_w_noshb_t1': round(example_w_noshb_t1, 1),
             'participation_fee_usd': f"{C.PARTICIPATION_FEE_POINTS / C.POINTS_PER_USD:.2f}",
             'points_per_usd': C.POINTS_PER_USD,
-            'calibration_duration': C.BASELINE_DURATION_SECONDS
+            'calibration_duration': C.BASELINE_DURATION_SECONDS,
+            'threshold_baseline_usd': f"{C.THRESHOLD_BASELINE_USD:.2f}",
+            'threshold_work_usd': f"{C.THRESHOLD_WORK_USD:.2f}",
+            'prior_mean_usd': f"{C.PRIOR_MEAN / C.POINTS_PER_USD:.2f}",
+            'noise_wage_range_usd': f"{C.NOISE_WAGE_RANGE_USD:.2f}",
+            'example_w_shb_usd': f"{round(example_w_shb, 2) / C.POINTS_PER_USD:.2f}",
+            'example_w_noshb_t1_usd': f"{round(example_w_noshb_t1, 2) / C.POINTS_PER_USD:.2f}",
+            'example_w0_usd': f"{example_w0 / C.POINTS_PER_USD:.2f}",
         }
 
 
@@ -535,6 +559,7 @@ class GetReady(Page):
         return {
             'baseline_duration': C.BASELINE_DURATION_SECONDS,
             'threshold_baseline': C.THRESHOLD_BASELINE,
+            'threshold_baseline_usd': f"{C.THRESHOLD_BASELINE_USD:.2f}",
         }
 
 
@@ -583,11 +608,14 @@ class Baseline(Page):
         # Calibration wage: single-signal formula w_0 = μ + κ₁(s_0 - μ),
         # identical under both regimes since no history exists at t=0.
         # Retention threshold r_0 is lower than the work-round threshold (Decision F).
+        # Always compute the formula wage (for counterfactual display when not hired)
+        formula_wage = round(
+            C.PRIOR_MEAN + C.KAPPA_1 * (player.baseline_signal - C.PRIOR_MEAN), 2
+        )
+        player.baseline_wage_counterfactual = formula_wage
         if player.baseline_signal >= C.THRESHOLD_BASELINE:
             player.baseline_hired = True
-            player.baseline_wage_offer = round(
-                C.PRIOR_MEAN + C.KAPPA_1 * (player.baseline_signal - C.PRIOR_MEAN), 2
-            )
+            player.baseline_wage_offer = formula_wage
         else:
             player.baseline_hired = False
             player.baseline_wage_offer = 0.0
@@ -617,6 +645,9 @@ class BaselineResult(Page):
     def vars_for_template(player: Player):
         return {
             'wage_offer': player.baseline_wage_offer,
+            'wage_offer_usd': f"{player.baseline_wage_offer / C.POINTS_PER_USD:.2f}",
+            'wage_counterfactual_usd': f"{player.baseline_wage_counterfactual / C.POINTS_PER_USD:.2f}",
+            'threshold_usd': f"{C.THRESHOLD_BASELINE_USD:.2f}",
             'hired': player.baseline_hired,
             'is_shb': (get_condition(player) == 'shb'),
             'threshold': C.THRESHOLD_BASELINE,
@@ -648,8 +679,7 @@ class Investment(Page):
 
         # Show cost–grid menu (Decision B: tokens shrink the grid;
         # Decision C: cumulative cost rises 0 → 4 → 10 → 18 points).
-        # cost_usd is the dollar equivalent at the locked conversion rate
-        # (POINTS_PER_USD = 10), shown alongside points for saliency.
+        # cost_usd is the dollar equivalent shown to participants.
         token_table = []
         for t in range(C.MAX_TRAINING_TOKENS + 1):
             rows, cols = C.GRID_BY_TOKENS[t]
@@ -682,6 +712,7 @@ class Investment(Page):
             'history_beta': C.HISTORY_BETA,
             'prior_mean': int(C.PRIOR_MEAN),
             'has_history': (len(history) > 0),
+            'threshold_usd': f"{C.THRESHOLD_WORK_USD:.2f}",
         }
 
 
@@ -717,6 +748,7 @@ class TaskReady(Page):
             'grid_cells': rows * cols,
             'task_duration': C.TASK_DURATION_SECONDS,
             'threshold': C.THRESHOLD_WORK,
+            'threshold_usd': f"{C.THRESHOLD_WORK_USD:.2f}",
         }
 
 
@@ -787,11 +819,13 @@ class Task(Page):
         # 3. Determine hiring (work-round threshold r_1 = r_2; Decision F)
         player.hired = (player.signal >= C.THRESHOLD_WORK)
 
-        # 4. Compute wage (Decision D, D2: additive history premium under NB)
+        # 4. Compute wage formula always (hired or not) for counterfactual display;
+        # apply to player.wage only if hired (Decision D, D2).
+        wage_formula, premium_formula = compute_wage(player)
+        player.wage_counterfactual = max(0.0, round(wage_formula, 2))
         if player.hired:
-            wage, premium = compute_wage(player)
-            player.wage = max(0.0, wage)
-            player.history_premium = premium
+            player.wage = player.wage_counterfactual
+            player.history_premium = premium_formula
         else:
             player.wage = 0.0
             player.history_premium = 0.0
@@ -859,6 +893,11 @@ class Results(Page):
             'signal': player.signal,
             'hired': player.hired,
             'wage': round(player.wage, 2),
+            'wage_usd': f"{player.wage / C.POINTS_PER_USD:.2f}",
+            'wage_counterfactual_usd': f"{player.wage_counterfactual / C.POINTS_PER_USD:.2f}",
+            'training_cost_usd': f"{player.training_cost / C.POINTS_PER_USD:.2f}",
+            'net_floored_usd': f"{max(0, player.round_net) / C.POINTS_PER_USD:.2f}",
+            'threshold_usd': f"{C.THRESHOLD_WORK_USD:.2f}",
             'kappa_1': C.KAPPA_1,
             'history_beta': C.HISTORY_BETA,
             'round_net': round(player.round_net, 2),
@@ -896,6 +935,7 @@ class FinalResults(Page):
                     'round': r.round_number,
                     'tokens': 0,
                     'cost': 0.0,
+                    'cost_usd': "0.00",
                     'grid': '×'.join(str(x) for x in C.GRID_BY_TOKENS[0]),
                     'correct': r.baseline_num_correct,
                     'task_score': r.baseline_score,
@@ -904,7 +944,9 @@ class FinalResults(Page):
                     'signal': r.baseline_signal,
                     'hired': r.baseline_hired,
                     'wage': round(r.baseline_wage_offer, 2),
+                    'wage_usd': f"{r.baseline_wage_offer / C.POINTS_PER_USD:.2f}",
                     'net': round(r.baseline_wage_offer, 2),
+                    'net_usd': f"{r.baseline_wage_offer / C.POINTS_PER_USD:.2f}",
                     'is_calibration': True,
                 })
             else:
@@ -913,6 +955,7 @@ class FinalResults(Page):
                     'round': r.round_number,
                     'tokens': r.training_tokens,
                     'cost': round(r.training_cost, 2),
+                    'cost_usd': f"{r.training_cost / C.POINTS_PER_USD:.2f}",
                     'grid': grid_str,
                     'correct': r.num_correct,
                     'task_score': r.task_score,
@@ -921,7 +964,9 @@ class FinalResults(Page):
                     'signal': r.signal,
                     'hired': r.hired,
                     'wage': round(r.wage, 2),
+                    'wage_usd': f"{r.wage / C.POINTS_PER_USD:.2f}",
                     'net': round(max(0.0, r.round_net), 2),
+                    'net_usd': f"{max(0.0, r.round_net) / C.POINTS_PER_USD:.2f}",
                     'is_calibration': False,
                 })
 

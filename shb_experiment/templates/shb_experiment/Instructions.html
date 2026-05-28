@@ -90,23 +90,23 @@
     </div>
   </div>
 
-  <p>Each correct answer gives you <strong>{{ score_multiplier }} performance points</strong>. Your <strong>performance score</strong> for the round is the number of correct answers times {{ score_multiplier }}. Every round (calibration and the two work rounds) gives you <strong>{{ task_duration }} seconds</strong> to answer.</p>
+  <p>The more problems you solve correctly, the higher your potential wage offer. Every round (calibration and the two work rounds) gives you <strong>{{ task_duration }} seconds</strong> to answer.</p>
 </div>
 
 <!-- Investment -->
 <div class="shb-card">
   <div class="shb-section-header">Investing in Training (Work Rounds Only)</div>
-  <p>Before each work round, you may pay for training. Training does <strong>not</strong> add points to your score directly. Instead, it makes the task easier by <strong>shrinking the counting grid</strong>, so you can answer more problems in the same amount of time.</p>
+  <p>Before each work round, you may pay for training. Training does <strong>not</strong> directly boost your wage offer. Instead, it makes the task easier by <strong>shrinking the counting grid</strong>, so you can answer more problems in the same amount of time — which raises your performance and therefore your potential offer.</p>
 
   <table class="table token-table table-bordered" style="max-width:600px;">
     <thead>
-      <tr><th>Training tokens</th><th>Cost (points)</th><th>Grid you face</th><th>Cells</th></tr>
+      <tr><th>Training tokens</th><th>Cost ($)</th><th>Grid you face</th><th>Cells</th></tr>
     </thead>
     <tbody>
       {% for row in token_menu %}
       <tr>
         <td>{{ row.tokens }}</td>
-        <td>{{ row.cost }}</td>
+        <td>${{ row.cost_usd }}</td>
         <td>{{ row.rows }}×{{ row.cols }}</td>
         <td>{{ row.cells }}</td>
       </tr>
@@ -122,19 +122,19 @@
 
   <div class="step-row">
     <div class="step-circle">1</div>
-    <div>After the task, the employer reads your <strong>performance score</strong> with a small amount of random noise added (between {{ noise_min }} and +{{ noise_max }} points). This represents the fact that employers can't observe your true productivity perfectly.</div>
+    <div>After the task, the employer assesses your performance with a small amount of random variation added (up to ±${{ noise_wage_range_usd }} on your wage offer). This represents the fact that employers can't observe your true productivity perfectly.</div>
   </div>
   <div class="step-row">
     <div class="step-circle">2</div>
-    <div>If that noisy reading is at or above the bar to clear that round (<strong>{{ threshold_baseline }} points</strong> in calibration; <strong>{{ threshold_work }} points</strong> in each work round), you are <strong>hired</strong> and receive a salary offer. Otherwise your salary that round is 0 (training cost is still taken out).</div>
+    <div>If your resulting wage offer would be at least <strong>${{ threshold_baseline_usd }}</strong> in the calibration round (or at least <strong>${{ threshold_work_usd }}</strong> in each work round), you are <strong>hired</strong> and receive that offer. Otherwise your salary that round is $0.00 (training cost is still taken out).</div>
   </div>
   <div class="step-row">
     <div class="step-circle">3</div>
     <div>
       {% if is_shb %}
-      Your salary offer depends <strong>only on this round's noisy reading</strong>. 
+      Your wage offer depends <strong>only on this round's performance</strong>.
       {% else %}
-      Your salary offer depends on <strong>this round's noisy reading and the salaries you received in earlier rounds</strong>. A higher past salary gives you a higher offer this round.
+      Your wage offer depends on <strong>this round's performance and the salaries you received in earlier rounds</strong>. A higher past salary gives you a higher offer this round.
       {% endif %}
     </div>
   </div>
@@ -143,17 +143,17 @@
 
   {% if is_shb %}
   <div class="example-box">
-    <span class="label">Example.</span> Suppose your noisy reading this round is <strong>{{ example_signal }}</strong> (above the average of {{ prior_mean }}). The employer sets your salary by starting at the average and moving partway toward how they assess you. In this study that gives a salary of about <strong>{{ example_w_shb }} points</strong>.
+    <span class="label">Example.</span> Suppose your performance this round results in a wage offer of <strong>${{ example_w_shb_usd }}</strong> (above the average of ${{ prior_mean_usd }}). That is your salary this round — above the ${{ threshold_work_usd }} bar, so you are hired.
   </div>
   {% else %}
   <div class="example-box">
-    <span class="label">Example 1 — favorable past salary.</span> Suppose your noisy reading this round is <strong>{{ example_signal }}</strong> (above the average of {{ prior_mean }}) and the salary you got in the calibration round was <strong>{{ example_w0 }}</strong> (also above average). The employer combines them: you get some part from your current performance, and there is an extra bonus from your favorable past salary. Total: about <strong>{{ example_w_noshb_t1 }} points</strong>.
+    <span class="label">Example 1 — favorable past salary.</span> Suppose your performance this round would generate an offer of <strong>${{ example_w_shb_usd }}</strong> and your calibration salary was <strong>${{ example_w0_usd }}</strong> (above the ${{ prior_mean_usd }} average). The employer adds a bonus for the favorable history: your final offer is <strong>${{ example_w_noshb_t1_usd }}</strong>.
   </div>
   <div class="example-box">
-    <span class="label">Example 2 — unfavorable past salary.</span> Now suppose your past salary was <strong>below</strong> the average of {{ prior_mean }} instead. Same reading this round of {{ example_signal }}, but the past-salary piece works against you. Past salaries can help you or hurt you, depending on whether they were above or below the average.
+    <span class="label">Example 2 — unfavorable past salary.</span> Now suppose your past salary was <strong>below</strong> the ${{ prior_mean_usd }} average instead. The same current performance results in a lower final offer because the history penalty works against you.
   </div>
   <div class="highlight-box mt-2">
-    <strong>Key point:</strong> Doing well early gives you a head-start that follows you forward. A bad early salary drags later salaries down. The salaries you got so far are shown to you on each round.
+    <strong>Key point:</strong> Doing well early gives you a head-start that follows you forward. A below-average early salary drags later offers down. Your salary history is shown to you before each round.
   </div>
   {% endif %}
 </div>
@@ -162,10 +162,10 @@
 <div class="shb-card">
   <div class="shb-section-header">How You Get Paid</div>
   <ul>
-    <li>Each round's <strong>net earnings</strong> = salary − training cost (never below 0).</li>
+    <li>Each round's <strong>net earnings</strong> = salary − training cost (never below $0.00).</li>
     <li>Your <strong>total bonus</strong> is the sum of net earnings across the calibration round and the two work rounds.</li>
     <li>You also get a <strong>${{ participation_fee_usd }} base payment</strong> for completing the study.</li>
-    <li>Bonus points are converted to dollars at <strong>{{ points_per_usd }} points = $1</strong>.</li>
+    <li>All earnings are shown directly in dollars throughout the study.</li>
   </ul>
 </div>
 
